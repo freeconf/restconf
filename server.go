@@ -14,18 +14,18 @@ import (
 
 	"golang.org/x/net/websocket"
 
+	"github.com/freeconf/restconf/secure"
 	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/device"
 	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/nodes"
-	"github.com/freeconf/yang/secure"
+	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/stock"
 )
 
 type Server struct {
 	Web                      *stock.HttpServer
-	CallHome                 *device.CallHome
+	CallHome                 *CallHome
 	Auth                     secure.Auth
 	Ver                      string
 	NotifyKeepaliveTimeoutMs int
