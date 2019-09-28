@@ -14,13 +14,13 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"github.com/freeconf/restconf/secure"
+	"github.com/freeconf/manage/device"
+	"github.com/freeconf/manage/secure"
+	"github.com/freeconf/manage/stock"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/device"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/nodes"
 	"github.com/freeconf/yang/parser"
-	"github.com/freeconf/yang/stock"
 )
 
 type Server struct {

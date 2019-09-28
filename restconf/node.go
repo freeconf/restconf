@@ -1,12 +1,11 @@
 package restconf
 
 import (
+	"github.com/freeconf/manage/stock"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/device"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
-	"github.com/freeconf/yang/stock"
 	"github.com/freeconf/yang/val"
 )
 
@@ -25,10 +24,10 @@ func Node(mgmt *Server, ypath meta.StreamSource) node.Node {
 			case "callHome":
 				if r.New {
 					rc := ProtocolHandler(ypath)
-					mgmt.CallHome = device.NewCallHome(rc)
+					mgmt.CallHome = NewCallHome(rc)
 				}
 				if mgmt.CallHome != nil {
-					return device.CallHomeNode(mgmt.CallHome), nil
+					return CallHomeNode(mgmt.CallHome), nil
 				}
 			default:
 				return p.Child(r)

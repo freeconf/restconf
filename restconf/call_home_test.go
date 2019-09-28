@@ -3,9 +3,9 @@ package restconf
 import (
 	"testing"
 
-	"github.com/freeconf/restconf/gateway"
+	"github.com/freeconf/manage/device"
+	"github.com/freeconf/manage/gateway"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/device"
 	"github.com/freeconf/yang/meta"
 )
 
@@ -13,11 +13,12 @@ func TestCallHome(t *testing.T) {
 	c2.DebugLog(true)
 
 	registrar := gateway.NewLocalRegistrar()
-	regDevice := device.New(&meta.FileStreamSource{Root: "../yang"})
+	ypath := &meta.FileStreamSource{Root: "../yang"}
+	regDevice := device.New(ypath)
 	if err := regDevice.Add("fc-registrar", gateway.RegistrarNode(registrar)); err != nil {
 		t.Error(err)
 	}
-	caller := device.NewCallHome(func(string) (device.Device, error) {
+	caller := NewCallHome(func(string) (device.Device, error) {
 		return regDevice, nil
 	})
 	options := caller.Options()
@@ -25,7 +26,7 @@ func TestCallHome(t *testing.T) {
 	options.Address = "north"
 	options.LocalAddress = "south"
 	var gotUpdate bool
-	caller.OnRegister(func(d device.Device, update device.RegisterUpdate) {
+	caller.OnRegister(func(d device.Device, update RegisterUpdate) {
 		gotUpdate = true
 	})
 	caller.ApplyOptions(options)

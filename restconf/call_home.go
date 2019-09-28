@@ -4,8 +4,8 @@ import (
 	"container/list"
 	"time"
 
+	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/device"
 	"github.com/freeconf/yang/nodes"
 )
 
@@ -99,7 +99,7 @@ retry:
 }
 
 func (self *CallHome) register(registrar device.Device) error {
-	reg, err := registrar.Browser("registrar")
+	reg, err := registrar.Browser("fc-registrar")
 	if err != nil {
 		return err
 	}

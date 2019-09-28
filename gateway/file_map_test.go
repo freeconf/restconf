@@ -7,10 +7,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/freeconf/manage/device"
+	"github.com/freeconf/manage/testdata"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/device"
 	"github.com/freeconf/yang/nodes"
-	"github.com/freeconf/yang/testdata"
 )
 
 var update = flag.Bool("update", false, "update gold files")

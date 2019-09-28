@@ -1,7 +1,7 @@
 package testdata
 
 import (
-	"github.com/freeconf/yang/device"
+	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"

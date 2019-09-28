@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 
-	"github.com/freeconf/restconf"
-	"github.com/freeconf/restconf/gateway"
+	"github.com/freeconf/manage/gateway"
+	"github.com/freeconf/manage/restconf"
 
 	"github.com/freeconf/yang/meta"
 
-	"github.com/freeconf/yang/device"
+	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/parser"
 
 	"github.com/freeconf/yang/c2"

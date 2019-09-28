@@ -6,7 +6,7 @@ import (
 
 	"context"
 
-	"github.com/freeconf/restconf"
+	"github.com/freeconf/manage/restconf"
 	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"

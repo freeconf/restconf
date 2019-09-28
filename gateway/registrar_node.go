@@ -3,7 +3,7 @@ package gateway
 import (
 	"strings"
 
-	"github.com/freeconf/yang/device"
+	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/val"
 
 	"github.com/freeconf/yang/node"

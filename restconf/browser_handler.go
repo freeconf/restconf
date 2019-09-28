@@ -6,7 +6,7 @@ import (
 
 	"context"
 
-	"github.com/freeconf/yang/device"
+	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"

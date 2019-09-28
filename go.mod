@@ -1,4 +1,4 @@
-module github.com/freeconf/restconf
+module github.com/freeconf/manage
 
 go 1.12
 

@@ -1,7 +1,7 @@
 package gateway
 
 import (
-	"github.com/freeconf/yang/device"
+	"github.com/freeconf/manage/device"
 )
 
 type Service struct {
