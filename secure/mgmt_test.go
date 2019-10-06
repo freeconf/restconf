@@ -4,16 +4,16 @@ import (
 	"testing"
 
 	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/source"
 
-	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
 )
 
 func TestManage(t *testing.T) {
 	a := NewRbac()
-	ypath := &meta.FileStreamSource{Root: "../yang"}
+	ypath := source.Dir("../yang")
 	b := node.NewBrowser(parser.RequireModule(ypath, "fc-secure"), Manage(a))
 	err := b.Root().UpsertFrom(nodes.ReadJSON(`{
 		"authorization" : {

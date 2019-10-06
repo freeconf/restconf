@@ -6,14 +6,14 @@ import (
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/manage/gateway"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/meta"
+	"github.com/freeconf/yang/source"
 )
 
 func TestCallHome(t *testing.T) {
 	c2.DebugLog(true)
 
 	registrar := gateway.NewLocalRegistrar()
-	ypath := &meta.FileStreamSource{Root: "../yang"}
+	ypath := source.Dir("../yang")
 	regDevice := device.New(ypath)
 	if err := regDevice.Add("fc-registrar", gateway.RegistrarNode(registrar)); err != nil {
 		t.Error(err)

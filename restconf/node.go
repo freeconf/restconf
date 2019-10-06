@@ -3,13 +3,13 @@ package restconf
 import (
 	"github.com/freeconf/manage/stock"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/source"
 	"github.com/freeconf/yang/val"
 )
 
-func Node(mgmt *Server, ypath meta.StreamSource) node.Node {
+func Node(mgmt *Server, ypath source.Opener) node.Node {
 	return &nodes.Extend{
 		Base: nodes.ReflectChild(mgmt),
 		OnChild: func(p node.Node, r node.ChildRequest) (node.Node, error) {

@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/freeconf/manage/device"
-	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 )
 
 func TestClientReconnect(t *testing.T) {
 	t.Skip("Fails until we figure out how to get WS connections to autoconnect")
-	ypath := meta.PathStreamSource("./testdata:../yang")
+	ypath := source.Path("./testdata:../yang")
 	m := parser.RequireModule(ypath, "x")
 	var msgs chan string
 	var s *Server

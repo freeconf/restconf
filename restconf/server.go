@@ -21,6 +21,7 @@ import (
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/nodes"
 	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 )
 
 type Server struct {
@@ -32,7 +33,7 @@ type Server struct {
 	main                     device.Device
 	devices                  device.Map
 	notifiers                *list.List
-	ypath                    meta.StreamSource
+	ypath                    source.Opener
 
 	// Optional: Anything not handled by RESTCONF protocol can call this handler otherwise
 	UnhandledRequestHandler http.HandlerFunc
@@ -45,7 +46,7 @@ func NewServer(d *device.Local) *Server {
 	}
 	m.ServeDevice(d)
 
-	if err := d.Add("restconf", Node(m, d.SchemaSource())); err != nil {
+	if err := d.Add("fc-restconf", Node(m, d.SchemaSource())); err != nil {
 		panic(err)
 	}
 
@@ -157,7 +158,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (self *Server) serveSchema(w http.ResponseWriter, r *http.Request, ypath meta.StreamSource) {
+func (self *Server) serveSchema(w http.ResponseWriter, r *http.Request, ypath source.Opener) {
 	modName, p := shift(r.URL, '/')
 	r.URL = p
 	m, err := parser.LoadModule(ypath, modName)
@@ -226,8 +227,8 @@ func (self *Server) SubscriptionCount() int {
 	return c
 }
 
-func (self *Server) serveStreamSource(w http.ResponseWriter, s meta.StreamSource, path string) {
-	rdr, err := s.OpenStream(path, "")
+func (self *Server) serveStreamSource(w http.ResponseWriter, s source.Opener, path string) {
+	rdr, err := s(path, "")
 	if err != nil {
 		handleErr(err, w)
 		return

@@ -10,12 +10,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/manage/device"
+	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 	"golang.org/x/net/websocket"
 )
 
@@ -24,10 +25,10 @@ import (
 // this in a node.Browser context would not know the difference from a remote or local device
 // with one minor exceptions. Peek() wouldn't work.
 type Client struct {
-	YangPath meta.StreamSource
+	YangPath source.Opener
 }
 
-func ProtocolHandler(ypath meta.StreamSource) device.ProtocolHandler {
+func ProtocolHandler(ypath source.Opener) device.ProtocolHandler {
 	c := Client{YangPath: ypath}
 	return c.NewDevice
 }
@@ -87,7 +88,7 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 	c := &client{
 		address:       address,
 		yangPath:      self.YangPath,
-		schemaPath:    meta.MultipleSources(self.YangPath, remoteSchemaPath),
+		schemaPath:    source.Any(self.YangPath, remoteSchemaPath.OpenStream),
 		client:        http.DefaultClient,
 		subscriptions: make(map[string]*clientSubscription),
 	}
@@ -107,8 +108,8 @@ var badAddressErr = c2.NewErr("Expected format: http://server/restconf[=device]/
 
 type client struct {
 	address       Address
-	yangPath      meta.StreamSource
-	schemaPath    meta.StreamSource
+	yangPath      source.Opener
+	schemaPath    source.Opener
 	client        *http.Client
 	origin        string
 	_ws           *websocket.Conn
@@ -116,15 +117,16 @@ type client struct {
 	modules       map[string]*meta.Module
 }
 
-func (self *client) SchemaSource() meta.StreamSource {
+func (self *client) SchemaSource() source.Opener {
 	return self.schemaPath
 }
 
-func (self *client) UiSource() meta.StreamSource {
-	return httpStream{
+func (self *client) UiSource() source.Opener {
+	s := httpStream{
 		client: http.DefaultClient,
 		url:    self.address.Ui,
 	}
+	return s.OpenStream
 }
 
 func (self *client) Browser(module string) (*node.Browser, error) {
@@ -212,7 +214,7 @@ func (self *client) module(module string) (*meta.Module, error) {
 // ClientSchema downloads schema and implements yang.StreamSource so it can transparently
 // be used in a YangPath.
 type httpStream struct {
-	ypath  meta.StreamSource
+	ypath  source.Opener
 	client *http.Client
 	url    string
 }
@@ -222,11 +224,11 @@ func (self httpStream) ResolveModuleHnd(hnd device.ModuleHnd) (*meta.Module, err
 	if m != nil {
 		return m, nil
 	}
-	return parser.LoadModule(self, hnd.Name)
+	return parser.LoadModule(self.OpenStream, hnd.Name)
 }
 
-// OpenStream implements meta.StreamSource
-func (self httpStream) OpenStream(name string, ext string) (meta.DataStream, error) {
+// OpenStream implements source.Opener
+func (self httpStream) OpenStream(name string, ext string) (io.Reader, error) {
 	fullUrl := self.url + name + ext
 	c2.Debug.Printf("httpStream url %s, name=%s, ext=%s", fullUrl, name, ext)
 	resp, err := self.client.Get(fullUrl)

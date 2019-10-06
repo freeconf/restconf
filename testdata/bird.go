@@ -3,9 +3,10 @@ package testdata
 import (
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 )
 
 type Bird struct {
@@ -19,7 +20,7 @@ type Species struct {
 	Class string
 }
 
-var YangPath = meta.PathStreamSource("../testdata:../yang")
+var YangPath = source.Path("../testdata:../yang")
 
 func BirdDevice(json string) (*device.Local, map[string]*Bird) {
 	d := device.New(YangPath)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/meta"
@@ -92,30 +93,25 @@ func (self *FileStore) Device(deviceId string) (device.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	var ypath, uipath meta.StreamSource
+	var ypath, uipath source.Opener
 	if operDevice == nil {
 		if !self.exists(deviceId) {
 			return nil, nil
 		}
-		ypath = &meta.FileStreamSource{Root: self.schemaDir()}
-		uipath = &meta.FileStreamSource{Root: self.uiDir()}
+		ypath = source.Dir(self.schemaDir())
+		uipath = source.Dir(self.uiDir())
 	} else {
 		self.mkdir(self.schemaDir())
 		self.mkdir(self.uiDir())
-		ypath = meta.CacheSource{
-			Local:    &meta.FileStreamSource{Root: self.schemaDir()},
-			Upstream: operDevice.SchemaSource(),
-		}
-		uipath = meta.CacheSource{
-			Local:    &meta.FileStreamSource{Root: self.uiDir()},
-			Upstream: operDevice.SchemaSource(),
-		}
+		yangCache := source.DirCache(self.schemaDir())
+		ypath = source.Cached(operDevice.SchemaSource(), yangCache)
+		uiCache := source.DirCache(self.uiDir())
+		uipath = source.Cached(operDevice.SchemaSource(), uiCache)
 	}
 	d := device.NewWithUi(ypath, uipath)
 	for _, moduleName := range self.modules(deviceId, operDevice) {
 		m, err := parser.LoadModule(ypath, moduleName)
 		if err != nil {
-			panic(moduleName)
 			return nil, err
 		}
 		var oper node.Node

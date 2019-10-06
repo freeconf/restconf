@@ -6,10 +6,9 @@ import (
 	"github.com/freeconf/manage/gateway"
 	"github.com/freeconf/manage/restconf"
 
-	"github.com/freeconf/yang/meta"
-
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 
 	"github.com/freeconf/yang/c2"
 )
@@ -39,7 +38,7 @@ func main() {
 	if *web == "" {
 		d = device.New(ypath)
 	} else {
-		d = device.NewWithUi(ypath, &meta.FileStreamSource{Root: *web})
+		d = device.NewWithUi(ypath, source.Dir(*web))
 	}
 
 	// We "wrap" each device with a device that splits CRUD operations

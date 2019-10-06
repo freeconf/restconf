@@ -4,17 +4,14 @@ import (
 	"testing"
 
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
 	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 )
 
 func TestMapNode(t *testing.T) {
-	ypath := meta.MultipleSources(
-		&meta.FileStreamSource{Root: "./testdata"},
-		&meta.FileStreamSource{Root: "../yang"},
-	)
+	ypath := source.Path("./testdata:../yang")
 	d := New(ypath)
 	d.Add("test", &nodes.Basic{})
 	dm := NewMap()

@@ -7,25 +7,26 @@ import (
 
 	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 )
 
 type Local struct {
 	browsers     map[string]*node.Browser
-	schemaSource meta.StreamSource
-	uiSource     meta.StreamSource
+	schemaSource source.Opener
+	uiSource     source.Opener
 }
 
-func New(schemaSource meta.StreamSource) *Local {
+func New(schemaSource source.Opener) *Local {
 	return &Local{
 		schemaSource: schemaSource,
 		browsers:     make(map[string]*node.Browser),
 	}
 }
 
-func NewWithUi(schemaSource meta.StreamSource, uiSource meta.StreamSource) *Local {
+func NewWithUi(schemaSource source.Opener, uiSource source.Opener) *Local {
 	return &Local{
 		schemaSource: schemaSource,
 		uiSource:     uiSource,
@@ -33,11 +34,11 @@ func NewWithUi(schemaSource meta.StreamSource, uiSource meta.StreamSource) *Loca
 	}
 }
 
-func (self *Local) SchemaSource() meta.StreamSource {
+func (self *Local) SchemaSource() source.Opener {
 	return self.schemaSource
 }
 
-func (self *Local) UiSource() meta.StreamSource {
+func (self *Local) UiSource() source.Opener {
 	return self.uiSource
 }
 

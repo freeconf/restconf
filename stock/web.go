@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/source"
 )
 
 type HttpServerOptions struct {
@@ -98,7 +98,7 @@ func (service *HttpServer) GetHttpClient() *http.Client {
 }
 
 type StreamSourceWebHandler struct {
-	Source meta.StreamSource
+	Source source.Opener
 }
 
 func (service StreamSourceWebHandler) ServeHTTP(wtr http.ResponseWriter, req *http.Request) {
@@ -106,7 +106,7 @@ func (service StreamSourceWebHandler) ServeHTTP(wtr http.ResponseWriter, req *ht
 	if path == "" {
 		path = "index.html"
 	}
-	if rdr, err := service.Source.OpenStream(path, ""); err != nil {
+	if rdr, err := service.Source(path, ""); err != nil {
 		http.Error(wtr, err.Error(), 404)
 	} else {
 		if closer, ok := rdr.(io.Closer); ok {

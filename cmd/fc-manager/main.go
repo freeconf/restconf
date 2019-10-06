@@ -5,11 +5,11 @@ import (
 
 	"github.com/freeconf/manage/secure"
 	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/manage/restconf"
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/meta"
 )
 
 // Initialize and start our RESTCONF proxy service.
@@ -30,7 +30,7 @@ func main() {
 	c2.DebugLog(*verbose)
 
 	// where UI files are stored
-	uiPath := &meta.FileStreamSource{Root: "../web"}
+	uiPath := source.Dir("../web")
 
 	// where all yang files are stored just for the server
 	// models for devices that register are pulled automatically
