@@ -7,10 +7,10 @@ import (
 
 	"github.com/freeconf/yang/val"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 type testAc struct {
@@ -25,7 +25,7 @@ const (
 )
 
 func TestAuthConstraints(t *testing.T) {
-	c2.DebugLog(true)
+	fc.DebugLog(true)
 	m, err := parser.LoadModuleFromString(nil, `module birding { revision 0;
 leaf count {
 	type int32;
@@ -51,10 +51,10 @@ notification identified {}
 	if err := json.NewDecoder(strings.NewReader(dataStr)).Decode(&data); err != nil {
 		panic(err)
 	}
-	n := &nodes.Extend{
-		Base: nodes.ReflectChild(data),
+	n := &nodeutil.Extend{
+		Base: nodeutil.ReflectChild(data),
 		OnNotify: func(p node.Node, r node.NotifyRequest) (node.NotifyCloser, error) {
-			r.Send(&nodes.Basic{})
+			r.Send(&nodeutil.Basic{})
 			closer := func() error { return nil }
 			return closer, nil
 		},
@@ -146,34 +146,34 @@ notification identified {}
 		s.Context = s.Constraints.ContextConstraint(s)
 
 		t.Log(test.desc + " read")
-		c2.AssertEqual(t, test.read, val2auth(s.GetValue("count")))
+		fc.AssertEqual(t, test.read, val2auth(s.GetValue("count")))
 
 		t.Logf(test.desc + " read path")
 		pathSel := s.Find("owner")
-		c2.AssertEqual(t, test.readPath, sel2auth(pathSel))
+		fc.AssertEqual(t, test.readPath, sel2auth(pathSel))
 
 		t.Log(test.desc + " write")
 		writeErr := s.Set("count", 100)
-		c2.AssertEqual(t, test.write, err2auth(writeErr))
+		fc.AssertEqual(t, test.write, err2auth(writeErr))
 
 		t.Log(test.desc + " write path")
 		if pathSel.IsNil() {
-			c2.AssertEqual(t, test.writePath, xHidden)
+			fc.AssertEqual(t, test.writePath, xHidden)
 		} else {
 			writePathErr := pathSel.Set("name", "Harvey")
-			c2.AssertEqual(t, test.writePath, err2auth(writePathErr))
+			fc.AssertEqual(t, test.writePath, err2auth(writePathErr))
 		}
 
 		t.Log(test.desc + " execute")
 		actionErr := s.Find("fieldtrip").Action(nil).LastErr
-		c2.AssertEqual(t, test.action, err2auth(actionErr))
+		fc.AssertEqual(t, test.action, err2auth(actionErr))
 
 		t.Log(test.desc + " notify")
 		var notifyErr error
 		s.Find("identified").Notifications(func(m node.Selection) {
 			notifyErr = m.LastErr
 		})
-		c2.AssertEqual(t, test.notify, err2auth(notifyErr))
+		fc.AssertEqual(t, test.notify, err2auth(notifyErr))
 	}
 }
 

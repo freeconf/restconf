@@ -17,9 +17,9 @@ import (
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/manage/secure"
 	"github.com/freeconf/manage/stock"
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 )
@@ -83,16 +83,16 @@ func (self *Server) ServeDevice(d device.Device) error {
 }
 
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if c2.DebugLogEnabled() {
-		c2.Debug.Printf("%s %s", r.Method, r.URL)
+	if fc.DebugLogEnabled() {
+		fc.Debug.Printf("%s %s", r.Method, r.URL)
 		if r.Body != nil {
 			content, rerr := ioutil.ReadAll(r.Body)
 			defer r.Body.Close()
 			if rerr != nil {
-				c2.Err.Printf("error trying to log body content %s", rerr)
+				fc.Err.Printf("error trying to log body content %s", rerr)
 			} else {
 				if len(content) > 0 {
-					c2.Debug.Print(string(content))
+					fc.Debug.Print(string(content))
 					r.Body = ioutil.NopCloser(bytes.NewBuffer(content))
 				}
 			}
@@ -141,7 +141,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "schema":
 			// Hack - parse accept header to get proper content type
 			accept := r.Header.Get("Accept")
-			c2.Debug.Printf("accept %s", accept)
+			fc.Debug.Printf("accept %s", accept)
 			if strings.Contains(accept, "/json") {
 				self.serveSchema(w, r, device.SchemaSource())
 			} else {
@@ -171,7 +171,7 @@ func (self *Server) serveSchema(w http.ResponseWriter, r *http.Request, ypath so
 		handleErr(err, w)
 		return
 	}
-	b := nodes.Schema(ylib, m)
+	b := nodeutil.Schema(ylib, m)
 	hndlr := &browserHandler{browser: b}
 	hndlr.ServeHTTP(w, r)
 }
@@ -192,7 +192,7 @@ func (self *Server) Subscribe(sub *Subscription) error {
 	if err != nil {
 		return err
 	} else if b == nil {
-		return c2.NotFoundError("No module found:" + sub.Module)
+		return fc.NotFoundError("No module found:" + sub.Module)
 	}
 	if sel := b.Root().Find(sub.Path); sel.LastErr == nil {
 		closer, err := sel.Notifications(sub.Notify)
@@ -233,7 +233,7 @@ func (self *Server) serveStreamSource(w http.ResponseWriter, s source.Opener, pa
 		handleErr(err, w)
 		return
 	} else if rdr == nil {
-		handleErr(c2.NotFoundError("not found"), w)
+		handleErr(fc.NotFoundError("not found"), w)
 		return
 	}
 	ext := filepath.Ext(path)
@@ -253,7 +253,7 @@ func (self *Server) findDevice(deviceId string) (device.Device, error) {
 		return nil, err
 	}
 	if device == nil {
-		return nil, c2.NotFoundError("device not found " + deviceId)
+		return nil, fc.NotFoundError("device not found " + deviceId)
 	}
 	return device, nil
 }
@@ -262,7 +262,7 @@ func (self *Server) shiftOperationAndDevice(w http.ResponseWriter, orig *url.URL
 	//  operation[=deviceId]/...
 	op, deviceId, p := shiftOptionalParamWithinSegment(orig, '=', '/')
 	if op == "" {
-		handleErr(c2.NotFoundError("no operation found in path"), w)
+		handleErr(fc.NotFoundError("no operation found in path"), w)
 		return op, nil, orig
 	}
 	device, err := self.findDevice(deviceId)
@@ -285,7 +285,7 @@ func (self *Server) shiftBrowserHandler(d device.Device, w http.ResponseWriter, 
 		}
 	}
 
-	handleErr(c2.NotFoundError("no module found in path"), w)
+	handleErr(fc.NotFoundError("no module found in path"), w)
 	return nil, orig
 }
 

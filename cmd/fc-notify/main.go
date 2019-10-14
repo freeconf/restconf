@@ -7,9 +7,9 @@ import (
 	"context"
 
 	"github.com/freeconf/manage/restconf"
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/source"
 )
 
@@ -19,16 +19,16 @@ import (
 // or supply an alternate value for 'origin' should the default
 // not be valid for some reason
 //
-//  http://server:port/restconf/streams/module:path?c2-device=car-advanced
+//  http://server:port/restconf/streams/module:path?fc-device=car-advanced
 //  http://server:port/restconf=device/streams/module:path
 //
 func main() {
-	c2.DebugLog(true)
+	fc.DebugLog(true)
 	if len(os.Args) != 2 {
 		usage()
 	}
 	address, module, path, err := restconf.SplitAddress(os.Args[1])
-	c2.Info.Printf("%s %s %s %v", address, module, path, err)
+	fc.Info.Printf("%s %s %s %v", address, module, path, err)
 	if err != nil {
 		panic(err)
 	}
@@ -52,7 +52,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	unsubscribe, err := b.RootWithContext(ctx).Find(path).Notifications(func(payload node.Selection) {
-		wtr := &nodes.JSONWtr{Out: os.Stdout}
+		wtr := &nodeutil.JSONWtr{Out: os.Stdout}
 		if err = payload.InsertInto(wtr.Node()).LastErr; err != nil {
 			log.Fatal(err)
 		}

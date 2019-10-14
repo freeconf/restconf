@@ -1,11 +1,9 @@
 package device
 
-import (
-	"github.com/freeconf/yang/c2"
-)
+import "github.com/freeconf/yang/nodeutil"
 
 type ServiceLocator interface {
 	Device(id string) (Device, error)
-	OnUpdate(l ChangeListener) c2.Subscription
-	OnModuleUpdate(module string, l ChangeListener) c2.Subscription
+	OnUpdate(l ChangeListener) nodeutil.Subscription
+	OnModuleUpdate(module string, l ChangeListener) nodeutil.Subscription
 }

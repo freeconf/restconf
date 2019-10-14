@@ -8,10 +8,10 @@ import (
 
 	"time"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/val"
 )
 
@@ -38,7 +38,7 @@ type clientSupport interface {
 var noSelection node.Selection
 
 func (self *clientNode) node() node.Node {
-	n := &nodes.Basic{}
+	n := &nodeutil.Basic{}
 	n.OnBeginEdit = func(r node.NodeRequest) error {
 		if !r.EditRoot {
 			return nil
@@ -152,8 +152,8 @@ func (self *clientNode) startEditMode(path *node.Path) error {
 		return err
 	}
 	data := make(map[string]interface{})
-	self.changes = nodes.ReflectChild(data)
-	self.edit = &nodes.Extend{
+	self.changes = nodeutil.ReflectChild(data)
+	self.edit = &nodeutil.Extend{
 		Base: self.changes,
 		OnChild: func(p node.Node, r node.ChildRequest) (node.Node, error) {
 			if !r.New && existing != nil {
@@ -168,7 +168,7 @@ func (self *clientNode) startEditMode(path *node.Path) error {
 func (self *clientNode) validNavigation(target *node.Path) (bool, error) {
 	if !self.found {
 		_, err := self.request("OPTIONS", target, noSelection)
-		if _, ok := err.(c2.NotFoundError); ok {
+		if _, ok := err.(fc.NotFoundError); ok {
 			return false, nil
 		}
 		if err != nil {
@@ -186,7 +186,7 @@ func (self *clientNode) get(p *node.Path, params string) (node.Node, error) {
 func (self *clientNode) request(method string, p *node.Path, in node.Selection) (node.Node, error) {
 	var payload bytes.Buffer
 	if !in.IsNil() {
-		js := &nodes.JSONWtr{Out: &payload}
+		js := &nodeutil.JSONWtr{Out: &payload}
 		if err := in.InsertInto(js.Node()).LastErr; err != nil {
 			return nil, err
 		}

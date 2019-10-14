@@ -9,8 +9,8 @@ import (
 
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/manage/testdata"
-	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/fc"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 var update = flag.Bool("update", false, "update gold files")
@@ -18,7 +18,7 @@ var update = flag.Bool("update", false, "update gold files")
 func TestFileStoreOffline(t *testing.T) {
 	reg := NewLocalRegistrar()
 	fs := NewFileStore(reg, "./testdata/var")
-	c2.AssertEqual(t, "[d1 d2]", fmt.Sprintf("%v", fs.deviceIds()))
+	fc.AssertEqual(t, "[d1 d2]", fmt.Sprintf("%v", fs.deviceIds()))
 	d1, err := fs.Device("d1")
 	if err != nil {
 		t.Fatal(err)
@@ -27,11 +27,11 @@ func TestFileStoreOffline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	actual, err := nodes.WritePrettyJSON(b1.Root())
+	actual, err := nodeutil.WritePrettyJSON(b1.Root())
 	if err != nil {
 		t.Fatal(err)
 	}
-	c2.Gold(t, *update, []byte(actual), "gold/m1.json")
+	fc.Gold(t, *update, []byte(actual), "gold/m1.json")
 }
 
 func TestFileStoreOnline(t *testing.T) {
@@ -40,7 +40,7 @@ func TestFileStoreOnline(t *testing.T) {
 	os.RemoveAll(dir)
 	reg.RegisterDevice("x", "foo")
 	fs := NewFileStore(reg, dir)
-	c2.AssertEqual(t, 0, len(fs.deviceIds()))
+	fc.AssertEqual(t, 0, len(fs.deviceIds()))
 	birdDevice, birds := testdata.BirdDevice(`{
 	}
 	`)
@@ -61,7 +61,7 @@ func TestFileStoreOnline(t *testing.T) {
 	if b == nil {
 		t.Fatal("no browser")
 	}
-	err = b.Root().InsertFrom(nodes.ReadJSON(`{
+	err = b.Root().InsertFrom(nodeutil.ReadJSON(`{
 		"bird" : [{
 			"name" : "bard owl"
 		}]
@@ -70,10 +70,10 @@ func TestFileStoreOnline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c2.AssertEqual(t, 1, len(birds))
+	fc.AssertEqual(t, 1, len(birds))
 	actual, err := ioutil.ReadFile(dir + "/config/x/bird.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	c2.Gold(t, *update, actual, "gold/online.json")
+	fc.Gold(t, *update, actual, "gold/online.json")
 }

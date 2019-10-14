@@ -5,7 +5,7 @@ import (
 
 	"net/url"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 )
 
 func Test_SplitAddress(t *testing.T) {
@@ -62,9 +62,9 @@ func Test_SplitAddress(t *testing.T) {
 			t.Error(err)
 			continue
 		}
-		c2.AssertEqual(t, test.address, address)
-		c2.AssertEqual(t, test.module, module)
-		c2.AssertEqual(t, test.path, path)
+		fc.AssertEqual(t, test.address, address)
+		fc.AssertEqual(t, test.module, module)
+		fc.AssertEqual(t, test.path, path)
 	}
 }
 
@@ -94,7 +94,7 @@ func Test_AppendUrlSegment(t *testing.T) {
 	}
 	for _, test := range tests {
 		actual := appendUrlSegment(test[0], test[1])
-		c2.AssertEqual(t, test[2], actual)
+		fc.AssertEqual(t, test[2], actual)
 	}
 }
 
@@ -108,8 +108,8 @@ func Test_ipAddrSplitHostPort(t *testing.T) {
 	}
 	for _, test := range tests {
 		host, port := ipAddrSplitHostPort(test[0])
-		c2.AssertEqual(t, test[1], host)
-		c2.AssertEqual(t, test[2], port)
+		fc.AssertEqual(t, test[1], host)
+		fc.AssertEqual(t, test[2], port)
 	}
 }
 
@@ -159,10 +159,10 @@ func Test_shift(t *testing.T) {
 			panic(err)
 		}
 		actualSeg, actualPath := shift(orig, '/')
-		c2.AssertEqual(t, test.expectedSegment, actualSeg)
-		c2.AssertEqual(t, test.expectedPath, actualPath.Path)
+		fc.AssertEqual(t, test.expectedSegment, actualSeg)
+		fc.AssertEqual(t, test.expectedPath, actualPath.Path)
 		if test.expectedRaw != "" {
-			c2.AssertEqual(t, test.expectedRaw, actualPath.RawPath)
+			fc.AssertEqual(t, test.expectedRaw, actualPath.RawPath)
 		}
 	}
 }
@@ -219,8 +219,8 @@ func Test_shiftOptionalParamWithinSegment(t *testing.T) {
 			panic(err)
 		}
 		seg, param, path := shiftOptionalParamWithinSegment(orig, '=', '/')
-		c2.AssertEqual(t, test.seg, seg)
-		c2.AssertEqual(t, test.param, param)
-		c2.AssertEqual(t, test.path, path.Path)
+		fc.AssertEqual(t, test.seg, seg)
+		fc.AssertEqual(t, test.param, param)
+		fc.AssertEqual(t, test.path, path.Path)
 	}
 }

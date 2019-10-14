@@ -12,10 +12,10 @@ import (
 	"strings"
 
 	"github.com/freeconf/manage/device"
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 	"golang.org/x/net/websocket"
@@ -97,7 +97,7 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 	m := parser.RequireModule(self.YangPath, "ietf-yang-library")
 	b := node.NewBrowser(m, d.node())
 	modules, err := device.LoadModules(b, remoteSchemaPath)
-	c2.Debug.Printf("loaded modules %v", modules)
+	fc.Debug.Printf("loaded modules %v", modules)
 	if err != nil {
 		return nil, err
 	}
@@ -167,30 +167,30 @@ func (self *client) watch(ws io.Reader) {
 	for {
 		var notification map[string]interface{}
 		if err := json.NewDecoder(ws).Decode(&notification); err != nil {
-			c2.Err.Print(err)
+			fc.Err.Print(err)
 			continue
 		}
 		var payload string
 		if payloadData, exists := notification["payload"]; !exists {
-			c2.Err.Print("No payload found")
+			fc.Err.Print("No payload found")
 			continue
 		} else {
 			if payloadDecoded, err := base64.StdEncoding.DecodeString(payloadData.(string)); err != nil {
-				c2.Err.Print(err)
+				fc.Err.Print(err)
 				continue
 			} else {
 				payload = string(payloadDecoded)
 			}
 		}
 		if notification["type"] == "error" {
-			c2.Err.Print(payload)
+			fc.Err.Print(payload)
 			continue
 		}
 		idVal := notification["id"]
 		if l := self.subscriptions[idVal.(string)]; l != nil {
-			l.notify(l.sel.Split(nodes.ReadJSON(payload)))
+			l.notify(l.sel.Split(nodeutil.ReadJSON(payload)))
 		} else {
-			c2.Info.Printf("no listener found with id %s", idVal)
+			fc.Info.Printf("no listener found with id %s", idVal)
 		}
 	}
 }
@@ -231,7 +231,7 @@ func (self httpStream) ResolveModuleHnd(hnd device.ModuleHnd) (*meta.Module, err
 // OpenStream implements source.Opener
 func (self httpStream) OpenStream(name string, ext string) (io.Reader, error) {
 	fullUrl := self.url + name + ext
-	c2.Debug.Printf("httpStream url %s, name=%s, ext=%s", fullUrl, name, ext)
+	fc.Debug.Printf("httpStream url %s, name=%s, ext=%s", fullUrl, name, ext)
 	resp, err := self.client.Get(fullUrl)
 	if resp != nil {
 		return resp.Body, err
@@ -252,7 +252,7 @@ func (self *client) clientDo(method string, params string, p *node.Path, payload
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	c2.Info.Printf("=> %s %s", method, fullUrl)
+	fc.Info.Printf("=> %s %s", method, fullUrl)
 	resp, getErr := self.client.Do(req)
 	if getErr != nil || resp.Body == nil {
 		return nil, getErr
@@ -262,5 +262,5 @@ func (self *client) clientDo(method string, params string, p *node.Path, payload
 		msg, _ := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("(%d) %s", resp.StatusCode, string(msg))
 	}
-	return nodes.ReadJSONIO(resp.Body), nil
+	return nodeutil.ReadJSONIO(resp.Body), nil
 }

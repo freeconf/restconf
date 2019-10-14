@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 type Subscriber interface {
@@ -121,17 +121,17 @@ func (self *Subscription) Notify(message node.Selection) {
 		// outside our control.  We should still panic otherwise because it would
 		// point out programtic errors which probably should be surfaced and fixed.
 		if r := recover(); r != nil {
-			c2.Debug.Printf("recovering from panic disconnecting. %s", r)
+			fc.Debug.Printf("recovering from panic disconnecting. %s", r)
 		}
 	}()
 	var payload []byte
 	if message.Node != nil {
-		buf, err := nodes.WriteJSON(message)
+		buf, err := nodeutil.WriteJSON(message)
 		if err != nil {
 			panic(err.Error())
 		}
-		if c2.DebugLogEnabled() {
-			c2.Debug.Printf("NOTIFY %s %s", self.Path, buf)
+		if fc.DebugLogEnabled() {
+			fc.Debug.Printf("NOTIFY %s %s", self.Path, buf)
 		}
 		payload = []byte(buf)
 	}
@@ -143,7 +143,7 @@ func (self *Subscription) Notify(message node.Selection) {
 }
 
 func (self *Subscription) Close() error {
-	c2.Debug.Printf("notify close %s", self.Path)
+	fc.Debug.Printf("notify close %s", self.Path)
 	if self.Closer != nil {
 		return self.Closer()
 	}
@@ -251,7 +251,7 @@ func (self *SubscriptionManager) newSubscription(msg SubscriptionIncoming) error
 		Path:     msg.Path,
 		send:     self.Send,
 	}
-	c2.Debug.Printf("notify open %s", msg.Path)
+	fc.Debug.Printf("notify open %s", msg.Path)
 	if err := self.factory.Subscribe(sub); err != nil {
 		return err
 	}

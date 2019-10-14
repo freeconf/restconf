@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/val"
 )
 
@@ -18,8 +18,8 @@ type Tls struct {
 }
 
 func TlsNode(config *Tls) node.Node {
-	return &nodes.Extend{
-		Base: nodes.ReflectChild(&config.Config),
+	return &nodeutil.Extend{
+		Base: nodeutil.ReflectChild(&config.Config),
 		OnChild: func(p node.Node, r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "ca":
@@ -47,7 +47,7 @@ func TlsNode(config *Tls) node.Node {
 }
 
 func CertificateAuthorityNode(config *Tls) node.Node {
-	n := &nodes.Basic{}
+	n := &nodeutil.Basic{}
 	n.OnField = func(r node.FieldRequest, hnd *node.ValueHandle) error {
 		switch r.Meta.Ident() {
 		case "certFile":
@@ -68,7 +68,7 @@ func CertificateAuthorityNode(config *Tls) node.Node {
 }
 
 func CertificateNode(config *Tls) node.Node {
-	n := &nodes.Basic{}
+	n := &nodeutil.Basic{}
 	n.OnField = func(r node.FieldRequest, hnd *node.ValueHandle) (err error) {
 		switch r.Meta.Ident() {
 		case "certFile":

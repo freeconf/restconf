@@ -3,7 +3,7 @@ package device
 import (
 	"container/list"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 type LocalMap struct {
@@ -13,8 +13,8 @@ type LocalMap struct {
 }
 
 type Map interface {
-	OnUpdate(l ChangeListener) c2.Subscription
-	OnModuleUpdate(module string, l ChangeListener) c2.Subscription
+	OnUpdate(l ChangeListener) nodeutil.Subscription
+	OnModuleUpdate(module string, l ChangeListener) nodeutil.Subscription
 	Device(deviceId string) (Device, error)
 	Add(id string, d Device)
 	NthDeviceId(int) string
@@ -42,9 +42,9 @@ func (self Change) String() string {
 
 type ChangeListener func(d Device, id string, c Change)
 
-func (self *LocalMap) OnUpdate(l ChangeListener) c2.Subscription {
+func (self *LocalMap) OnUpdate(l ChangeListener) nodeutil.Subscription {
 	self.updateListener(l, Added)
-	return c2.NewSubscription(self.listeners, self.listeners.PushBack(l))
+	return nodeutil.NewSubscription(self.listeners, self.listeners.PushBack(l))
 }
 
 func (self *LocalMap) updateListener(l ChangeListener, c Change) {
@@ -61,7 +61,7 @@ func (self *LocalMap) updateListeners(d Device, id string, c Change) {
 	}
 }
 
-func (self *LocalMap) OnModuleUpdate(module string, l ChangeListener) c2.Subscription {
+func (self *LocalMap) OnModuleUpdate(module string, l ChangeListener) nodeutil.Subscription {
 	return self.OnUpdate(func(d Device, id string, c Change) {
 		if hnd := d.Modules()[module]; hnd != nil {
 			l(d, id, c)

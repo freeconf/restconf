@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/source"
 )
 
@@ -51,7 +51,7 @@ func (service *HttpServer) ApplyOptions(options HttpServerOptions) {
 	}
 	chkStartErr := func(err error) {
 		if err != nil && err != http.ErrServerClosed {
-			c2.Err.Fatal(err)
+			fc.Err.Fatal(err)
 		}
 	}
 	if options.Tls != nil {
@@ -125,8 +125,8 @@ func (service StreamSourceWebHandler) ServeHTTP(wtr http.ResponseWriter, req *ht
 
 func WebServerNode(service *HttpServer) node.Node {
 	options := service.Options()
-	return &nodes.Extend{
-		Base: nodes.ReflectChild(&options),
+	return &nodeutil.Extend{
+		Base: nodeutil.ReflectChild(&options),
 		OnChild: func(p node.Node, r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "tls":

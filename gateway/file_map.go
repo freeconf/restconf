@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 
@@ -16,7 +15,7 @@ import (
 	"github.com/freeconf/yang/meta"
 
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 // Store all data in simple files.  Normally you would save this to a highly
@@ -144,11 +143,11 @@ func (self *FileStore) operational(deviceId string) (device.Device, error) {
 	return nil, nil
 }
 
-func (self *FileStore) OnUpdate(l device.ChangeListener) c2.Subscription {
-	return c2.NewSubscription(self.listeners, self.listeners.PushBack(l))
+func (self *FileStore) OnUpdate(l device.ChangeListener) nodeutil.Subscription {
+	return nodeutil.NewSubscription(self.listeners, self.listeners.PushBack(l))
 }
 
-func (self *FileStore) OnModuleUpdate(module string, l device.ChangeListener) c2.Subscription {
+func (self *FileStore) OnModuleUpdate(module string, l device.ChangeListener) nodeutil.Subscription {
 	return self.OnUpdate(func(d device.Device, id string, c device.Change) {
 		if hnd := d.Modules()[module]; hnd != nil {
 			l(d, id, c)
@@ -251,7 +250,7 @@ func (self *FileStore) configModules(deviceId string) []string {
 
 func (self *FileStore) newBrowser(fname string, m *meta.Module, oper node.Node) (*node.Browser, error) {
 	data := make(map[string]interface{})
-	dataNode := nodes.ReflectChild(data)
+	dataNode := nodeutil.ReflectChild(data)
 
 	_, err := os.Stat(fname)
 	if err != nil {
@@ -268,12 +267,12 @@ func (self *FileStore) newBrowser(fname string, m *meta.Module, oper node.Node) 
 			return nil, err
 		}
 		defer rdr.Close()
-		readOnly := nodes.ReadJSONIO(rdr)
+		readOnly := nodeutil.ReadJSONIO(rdr)
 		node.NewBrowser(m, dataNode).Root().InsertFrom(readOnly)
 	}
 
 	var n node.Node
-	n = &nodes.Extend{
+	n = &nodeutil.Extend{
 		Base: dataNode,
 		OnEndEdit: func(p node.Node, r node.NodeRequest) error {
 			if err := p.EndEdit(r); err != nil {
@@ -291,7 +290,7 @@ func (self *FileStore) newBrowser(fname string, m *meta.Module, oper node.Node) 
 
 				// this walks data for device's data for this module (a device might have multiple
 				// modules) and sends it to json
-				jwtr := &nodes.JSONWtr{Out: wtr, Pretty: true}
+				jwtr := &nodeutil.JSONWtr{Out: wtr, Pretty: true}
 				if err := r.Selection.Constrain(params).InsertInto(jwtr.Node()).LastErr; err != nil {
 					return err
 				}
@@ -300,7 +299,7 @@ func (self *FileStore) newBrowser(fname string, m *meta.Module, oper node.Node) 
 		},
 	}
 	if oper != nil {
-		n = nodes.ConfigProxy{}.Node(n, oper)
+		n = nodeutil.ConfigProxy{}.Node(n, oper)
 	}
 	return node.NewBrowser(m, n), nil
 }

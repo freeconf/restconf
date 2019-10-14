@@ -8,7 +8,7 @@ import (
 
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/val"
 )
 
@@ -21,7 +21,7 @@ func formNode(req *http.Request) (node.Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			entry, found := req.MultipartForm.File[r.Meta.Ident()]
 			if !found || len(entry) == 0 {
@@ -74,11 +74,11 @@ func formChildNode(f *multipart.FileHeader) (node.Node, error) {
 		return nil, err
 	}
 	defer rdr.Close()
-	return nodes.ReadJSONIO(rdr), nil
+	return nodeutil.ReadJSONIO(rdr), nil
 }
 
 func formListNode(files []*multipart.FileHeader) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
 			if r.Row >= len(files) {
 				return nil, nil, nil

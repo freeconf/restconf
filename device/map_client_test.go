@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 )
@@ -12,7 +12,7 @@ import (
 func TestMapClient(t *testing.T) {
 	ypath := source.Path("./testdata:../yang")
 	d := New(ypath)
-	d.Add("test", &nodes.Basic{})
+	d.Add("test", &nodeutil.Basic{})
 	dm := NewMap()
 	dm.Add("dev0", d)
 	dmMod := parser.RequireModule(ypath, "fc-map")

@@ -3,7 +3,7 @@ package device
 import (
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/val"
 )
 
@@ -21,7 +21,7 @@ func LoadModules(ietfYangLib *node.Browser, resolver ResolveModule) (map[string]
 }
 
 func loadModulesListNode(mods map[string]*meta.Module, resolver ResolveModule) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
 			key := r.Key
 			if r.New {
@@ -34,8 +34,8 @@ func loadModulesListNode(mods map[string]*meta.Module, resolver ResolveModule) n
 }
 
 func loadModuleNode(mods map[string]*meta.Module, resolver ResolveModule, hnd *ModuleHnd) node.Node {
-	return &nodes.Extend{
-		Base: nodes.ReflectChild(hnd),
+	return &nodeutil.Extend{
+		Base: nodeutil.ReflectChild(hnd),
 		OnEndEdit: func(p node.Node, r node.NodeRequest) error {
 			if err := p.EndEdit(r); err != nil {
 				return err

@@ -5,12 +5,12 @@ import (
 
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/manage/gateway"
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/source"
 )
 
 func TestCallHome(t *testing.T) {
-	c2.DebugLog(true)
+	fc.DebugLog(true)
 
 	registrar := gateway.NewLocalRegistrar()
 	ypath := source.Dir("../yang")
@@ -33,5 +33,5 @@ func TestCallHome(t *testing.T) {
 	if !gotUpdate {
 		t.Error("no update recieved")
 	}
-	c2.AssertEqual(t, 1, registrar.RegistrationCount())
+	fc.AssertEqual(t, 1, registrar.RegistrationCount())
 }

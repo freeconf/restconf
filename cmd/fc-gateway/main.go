@@ -11,7 +11,7 @@ import (
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/source"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 )
 
 // Management Gateway.  Serve management functions to available services.
@@ -27,7 +27,7 @@ var varDir = flag.String("var", "var", "directory to store files")
 
 func main() {
 	flag.Parse()
-	c2.DebugLog(*verbose)
+	fc.DebugLog(*verbose)
 
 	// where all yang files are stored
 	ypathEnv := os.Getenv("YANGPATH")

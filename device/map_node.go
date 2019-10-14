@@ -5,7 +5,7 @@ import (
 
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 type ProxyContextKey int
@@ -15,7 +15,7 @@ const RemoteIpAddressKey ProxyContextKey = 0
 type LocalLocationService map[string]string
 
 func MapNode(mgr Map) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "device":
@@ -38,7 +38,7 @@ func MapNode(mgr Map) node.Node {
 }
 
 func deviceChangeNode(id string, d Device, c Change) node.Node {
-	return &nodes.Extend{
+	return &nodeutil.Extend{
 		Base: deviceNode(id, d),
 		OnField: func(p node.Node, r node.FieldRequest, hnd *node.ValueHandle) error {
 			switch r.Meta.Ident() {
@@ -57,7 +57,7 @@ func deviceChangeNode(id string, d Device, c Change) node.Node {
 }
 
 func deviceRecordListNode(devices Map) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
 			var d Device
 			var id string
@@ -87,11 +87,11 @@ func deviceRecordListNode(devices Map) node.Node {
 }
 
 func deviceHndNode(hnd *DeviceHnd) node.Node {
-	return nodes.ReflectChild(hnd)
+	return nodeutil.ReflectChild(hnd)
 }
 
 func deviceNode(id string, d Device) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "module":
@@ -111,7 +111,7 @@ func deviceNode(id string, d Device) node.Node {
 
 func deviceModuleList(mods map[string]*meta.Module) node.Node {
 	index := node.NewIndex(mods)
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
 			key := r.Key
 			var m *meta.Module
@@ -134,7 +134,7 @@ func deviceModuleList(mods map[string]*meta.Module) node.Node {
 }
 
 func deviceModuleNode(m *meta.Module) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnField: func(r node.FieldRequest, hnd *node.ValueHandle) error {
 			switch r.Meta.Ident() {
 			case "name":

@@ -5,10 +5,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 )
@@ -94,10 +94,10 @@ func (self *Local) ApplyStartupConfigData(config map[string]interface{}) error {
 			return err
 		}
 		if b == nil {
-			return c2.NotFoundError("browser not found:" + module)
+			return fc.NotFoundError("browser not found:" + module)
 		}
 		moduleCfg := data.(map[string]interface{})
-		if err := b.Root().UpsertFromSetDefaults(nodes.ReflectChild(moduleCfg)).LastErr; err != nil {
+		if err := b.Root().UpsertFromSetDefaults(nodeutil.ReflectChild(moduleCfg)).LastErr; err != nil {
 			return err
 		}
 	}

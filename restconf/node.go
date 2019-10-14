@@ -2,16 +2,16 @@ package restconf
 
 import (
 	"github.com/freeconf/manage/stock"
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/source"
 	"github.com/freeconf/yang/val"
 )
 
 func Node(mgmt *Server, ypath source.Opener) node.Node {
-	return &nodes.Extend{
-		Base: nodes.ReflectChild(mgmt),
+	return &nodeutil.Extend{
+		Base: nodeutil.ReflectChild(mgmt),
 		OnChild: func(p node.Node, r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "web":
@@ -38,9 +38,9 @@ func Node(mgmt *Server, ypath source.Opener) node.Node {
 			switch r.Meta.Ident() {
 			case "debug":
 				if r.Write {
-					c2.DebugLog(hnd.Val.Value().(bool))
+					fc.DebugLog(hnd.Val.Value().(bool))
 				} else {
-					hnd.Val = val.Bool(c2.DebugLogEnabled())
+					hnd.Val = val.Bool(fc.DebugLogEnabled())
 				}
 			case "streamCount":
 				hnd.Val = val.Int32(mgmt.notifiers.Len())

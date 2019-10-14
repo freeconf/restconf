@@ -6,11 +6,11 @@ import (
 	"github.com/freeconf/yang/val"
 
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 func Manage(rbac *Rbac) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "authentication":
@@ -24,7 +24,7 @@ func Manage(rbac *Rbac) node.Node {
 }
 
 func authorizeMgmt(rbac *Rbac) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "role":
@@ -36,8 +36,8 @@ func authorizeMgmt(rbac *Rbac) node.Node {
 }
 
 func rolesMgmt(role map[string]*Role) node.Node {
-	return nodes.Reflect{
-		OnChild: func(p nodes.Reflect, v reflect.Value) node.Node {
+	return nodeutil.Reflect{
+		OnChild: func(p nodeutil.Reflect, v reflect.Value) node.Node {
 			switch x := v.Interface().(type) {
 			case *AccessControl:
 				return accessControlMgmt(x)
@@ -48,8 +48,8 @@ func rolesMgmt(role map[string]*Role) node.Node {
 }
 
 func accessControlMgmt(ac *AccessControl) node.Node {
-	return &nodes.Extend{
-		Base: nodes.ReflectChild(ac),
+	return &nodeutil.Extend{
+		Base: nodeutil.ReflectChild(ac),
 		OnField: func(p node.Node, r node.FieldRequest, hnd *node.ValueHandle) error {
 			switch r.Meta.Ident() {
 			case "perm":

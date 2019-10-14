@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 )
 
 type dummySubFactory struct {
@@ -54,10 +54,10 @@ func TestSubscribeDecode(t *testing.T) {
 	if _, hasSub := subs["1"]; !hasSub {
 		t.Errorf("Missing subscription: %v", subs)
 	}
-	c2.AssertEqual(t, factory.count, 1)
+	fc.AssertEqual(t, factory.count, 1)
 	send(`{"op":"+","id":"2","group":"foo","module":"x","path":"some/path2"}`)
 	send(`{"op":"+","id":"3","group":"foo","module":"x","path":"some/path3"}`)
-	c2.AssertEqual(t, len(subs), 3)
+	fc.AssertEqual(t, len(subs), 3)
 	send(`{"op":"-","id":"1"}`)
 	if _, hasSub := subs["1"]; hasSub {
 		t.Errorf("Subscription wasn't removed: %v", subs)
@@ -66,7 +66,7 @@ func TestSubscribeDecode(t *testing.T) {
 	if len(subs) != 0 {
 		t.Errorf("Expected no subs, got %v", subs)
 	}
-	c2.AssertEqual(t, factory.count, 0)
+	fc.AssertEqual(t, factory.count, 0)
 }
 
 func TestSubscribeEncode(t *testing.T) {
@@ -96,6 +96,6 @@ func TestSubscribeEncode(t *testing.T) {
 		if err := EncodeSubscriptionStream(&buff, test.msg); err != nil {
 			t.Error(err)
 		}
-		c2.AssertEqual(t, test.expected, strings.TrimRight(buff.String(), "\n"))
+		fc.AssertEqual(t, test.expected, strings.TrimRight(buff.String(), "\n"))
 	}
 }

@@ -4,7 +4,7 @@ import (
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 )
@@ -27,7 +27,7 @@ func BirdDevice(json string) (*device.Local, map[string]*Bird) {
 	b, birds := BirdBrowser(json)
 	d.AddBrowser(b)
 	if json != "" {
-		if err := b.Root().UpsertFrom(nodes.ReadJSON(json)).LastErr; err != nil {
+		if err := b.Root().UpsertFrom(nodeutil.ReadJSON(json)).LastErr; err != nil {
 			panic(err)
 		}
 	}
@@ -38,7 +38,7 @@ func BirdBrowser(json string) (*node.Browser, map[string]*Bird) {
 	data := make(map[string]*Bird)
 	b := node.NewBrowser(BirdModule(), BirdNode(data))
 	if json != "" {
-		if err := b.Root().UpsertFrom(nodes.ReadJSON(json)).LastErr; err != nil {
+		if err := b.Root().UpsertFrom(nodeutil.ReadJSON(json)).LastErr; err != nil {
 			panic(err)
 		}
 	}
@@ -50,11 +50,11 @@ func BirdModule() *meta.Module {
 }
 
 func BirdNode(birds map[string]*Bird) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "bird":
-				return nodes.ReflectList(birds), nil
+				return nodeutil.ReflectList(birds), nil
 			}
 			return nil, nil
 		},

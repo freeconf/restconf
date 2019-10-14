@@ -7,9 +7,9 @@ import (
 
 	"io/ioutil"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 )
 
@@ -43,21 +43,21 @@ func Test_ClientOperations(t *testing.T) {
 	}
 	d := &clientNode{support: support}
 	b := node.NewBrowser(m, d.node())
-	if actual, err := nodes.WriteJSON(b.Root().Find("car")); err != nil {
+	if actual, err := nodeutil.WriteJSON(b.Root().Find("car")); err != nil {
 		t.Error(err)
 	} else {
-		c2.AssertEqual(t, expected, actual)
+		fc.AssertEqual(t, expected, actual)
 	}
 
 	support.get = map[string]string{
 		"car": `{}`,
 	}
 	expectedEdit := `{"mileage":{"odometer":1001}}`
-	edit := nodes.ReadJSON(expectedEdit)
+	edit := nodeutil.ReadJSON(expectedEdit)
 	if err := b.Root().Find("car").UpsertFrom(edit).LastErr; err != nil {
 		t.Error(err)
 	}
-	c2.AssertEqual(t, expectedEdit, support.put["car"])
+	fc.AssertEqual(t, expectedEdit, support.put["car"])
 }
 
 type testDriverFlowSupport struct {
@@ -79,7 +79,7 @@ func (self *testDriverFlowSupport) clientDo(method string, params string, p *nod
 		if !found {
 			return node.ErrorNode{Err: fmt.Errorf("no response for %s", path)}, nil
 		}
-		return nodes.ReadJSON(in), nil
+		return nodeutil.ReadJSON(in), nil
 	case "PUT":
 		body, _ := ioutil.ReadAll(payload)
 		self.put = map[string]string{

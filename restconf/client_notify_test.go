@@ -7,7 +7,7 @@ import (
 
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 )
@@ -20,13 +20,13 @@ func TestClientReconnect(t *testing.T) {
 	var s *Server
 	connect := func() {
 		msgs = make(chan string)
-		n := &nodes.Basic{
+		n := &nodeutil.Basic{
 			OnNotify: func(r node.NotifyRequest) (node.NotifyCloser, error) {
 				go func() {
 					for {
 						select {
 						case s := <-msgs:
-							r.Send(nodes.ReflectChild(map[string]interface{}{
+							r.Send(nodeutil.ReflectChild(map[string]interface{}{
 								"z": s,
 							}))
 						default:

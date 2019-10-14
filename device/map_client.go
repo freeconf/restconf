@@ -1,8 +1,9 @@
 package device
 
 import (
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 type MapClient struct {
@@ -44,28 +45,28 @@ type DeviceHnd struct {
 
 func (self *MapClient) device(deviceId string) (Device, error) {
 	address := self.baseAddress + "/device=" + deviceId
-	c2.Debug.Printf("map client address %s", address)
+	fc.Debug.Printf("map client address %s", address)
 	return self.proto(address)
 }
 
-func (self *MapClient) OnUpdate(l ChangeListener) c2.Subscription {
+func (self *MapClient) OnUpdate(l ChangeListener) nodeutil.Subscription {
 	return self.onUpdate("update", l)
 }
 
-func (self *MapClient) OnModuleUpdate(module string, l ChangeListener) c2.Subscription {
+func (self *MapClient) OnModuleUpdate(module string, l ChangeListener) nodeutil.Subscription {
 	return self.onUpdate("update?filter=module/name%3d'"+module+"'", l)
 }
 
-func (self *MapClient) onUpdate(path string, l ChangeListener) c2.Subscription {
+func (self *MapClient) onUpdate(path string, l ChangeListener) nodeutil.Subscription {
 	closer, err := self.browser.Root().Find(path).Notifications(func(msg node.Selection) {
 		id, err := msg.GetValue("deviceId")
 		if err != nil {
-			c2.Err.Print(err)
+			fc.Err.Print(err)
 			return
 		}
 		d, err := self.device(id.String())
 		if err != nil {
-			c2.Err.Print(err)
+			fc.Err.Print(err)
 			return
 		}
 		l(d, id.String(), Added)

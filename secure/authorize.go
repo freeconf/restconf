@@ -3,7 +3,7 @@ package secure
 import (
 	"context"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 )
@@ -34,7 +34,7 @@ const (
 	Full
 )
 
-var UnauthorizedError = c2.HttpError(401)
+var UnauthorizedError = fc.HttpError(401)
 
 func (self *Role) CheckListPreConstraints(r *node.ListRequest) (bool, error) {
 	requested := Read

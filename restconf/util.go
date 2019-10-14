@@ -6,7 +6,7 @@ import (
 
 	"strings"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 )
 
 // SplitAddress takes a complete address and breaks it into pieces according
@@ -41,7 +41,7 @@ func handleErr(err error, w http.ResponseWriter) bool {
 	if err == nil {
 		return false
 	}
-	if code, isHttpErr := c2.HttpableError(err); isHttpErr {
+	if code, isHttpErr := fc.HttpableError(err); isHttpErr {
 		http.Error(w, err.Error(), code)
 	} else {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

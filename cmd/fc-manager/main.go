@@ -10,7 +10,7 @@ import (
 
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/manage/restconf"
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 )
 
 // Initialize and start our RESTCONF proxy service.
@@ -28,7 +28,7 @@ var verbose = flag.Bool("verbose", false, "verbose")
 
 func main() {
 	flag.Parse()
-	c2.DebugLog(*verbose)
+	fc.DebugLog(*verbose)
 
 	// where UI files are stored
 	uiPath := source.Dir("../web")

@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 )
 
@@ -93,7 +93,7 @@ func post(t *testing.T) {
 }
 
 func formDummyNode(t *testing.T) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnAction: func(r node.ActionRequest) (node.Node, error) {
 			v, err := r.Input.GetValue("a")
 			chkErr(t, err)

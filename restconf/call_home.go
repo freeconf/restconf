@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/freeconf/manage/device"
-	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/fc"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 // Implements RFC Draft in spirit-only
@@ -47,11 +47,11 @@ const (
 
 type RegisterListener func(d device.Device, update RegisterUpdate)
 
-func (self *CallHome) OnRegister(l RegisterListener) c2.Subscription {
+func (self *CallHome) OnRegister(l RegisterListener) nodeutil.Subscription {
 	if self.Registered {
 		l(self.registrar, Register)
 	}
-	return c2.NewSubscription(self.listeners, self.listeners.PushBack(l))
+	return nodeutil.NewSubscription(self.listeners, self.listeners.PushBack(l))
 }
 
 func (self *CallHome) Options() CallHomeOptions {
@@ -64,7 +64,7 @@ func (self *CallHome) ApplyOptions(options CallHomeOptions) error {
 	}
 	self.options = options
 	self.Registered = false
-	c2.Debug.Print("connecting to ", self.options.Address)
+	fc.Debug.Print("connecting to ", self.options.Address)
 	self.Register()
 	return nil
 }
@@ -83,10 +83,10 @@ retry:
 	regUrl := self.options.Address + self.options.Endpoint
 	registrar, err := self.registrarProto(regUrl)
 	if err != nil {
-		c2.Err.Printf("failed to build device with address %s. %s", regUrl, err)
+		fc.Err.Printf("failed to build device with address %s. %s", regUrl, err)
 	} else {
 		if err = self.register(registrar); err != nil {
-			c2.Err.Printf("failed to register %s", err)
+			fc.Err.Printf("failed to register %s", err)
 		} else {
 			return
 		}
@@ -107,7 +107,7 @@ func (self *CallHome) register(registrar device.Device) error {
 		"deviceId": self.options.DeviceId,
 		"address":  self.options.LocalAddress,
 	}
-	err = reg.Root().Find("register").Action(nodes.ReflectChild(r)).LastErr
+	err = reg.Root().Find("register").Action(nodeutil.ReflectChild(r)).LastErr
 	if err == nil {
 		self.updateListeners(registrar, Register)
 		self.Registered = true

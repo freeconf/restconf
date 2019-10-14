@@ -6,9 +6,9 @@ import (
 
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/manage/testdata"
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 var update = flag.Bool("update", false, "update golden test files")
@@ -34,9 +34,9 @@ func TestYangLibNode(t *testing.T) {
 		t.Error("no browser")
 		return
 	}
-	actual, err := nodes.WritePrettyJSON(b.Root())
+	actual, err := nodeutil.WritePrettyJSON(b.Root())
 	if err != nil {
 		t.Error(err)
 	}
-	c2.Gold(t, *update, []byte(actual), "gold/yang_lib.json")
+	fc.Gold(t, *update, []byte(actual), "gold/yang_lib.json")
 }

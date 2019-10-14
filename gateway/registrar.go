@@ -3,7 +3,7 @@ package gateway
 import (
 	"container/list"
 
-	"github.com/freeconf/yang/c2"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 type Registration struct {
@@ -15,7 +15,7 @@ type Registrar interface {
 	RegistrationCount() int
 	LookupRegistration(deviceId string) (Registration, bool)
 	RegisterDevice(deviceId string, address string)
-	OnRegister(l RegisterListener) c2.Subscription
+	OnRegister(l RegisterListener) nodeutil.Subscription
 }
 
 type RegisterListener func(Registration)
@@ -53,6 +53,6 @@ func (self *LocalRegistrar) RegistrationCount() int {
 	return len(self.regs)
 }
 
-func (self *LocalRegistrar) OnRegister(l RegisterListener) c2.Subscription {
-	return c2.NewSubscription(self.listeners, self.listeners.PushBack(l))
+func (self *LocalRegistrar) OnRegister(l RegisterListener) nodeutil.Subscription {
+	return nodeutil.NewSubscription(self.listeners, self.listeners.PushBack(l))
 }

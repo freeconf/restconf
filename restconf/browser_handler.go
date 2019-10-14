@@ -9,7 +9,7 @@ import (
 	"github.com/freeconf/manage/device"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 type browserHandler struct {
@@ -46,7 +46,7 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				var sub node.NotifyCloser
 				wait := make(chan struct{})
 				sub, err = sel.Notifications(func(msg node.Selection) {
-					jout := &nodes.JSONWtr{Out: w}
+					jout := &nodeutil.JSONWtr{Out: w}
 					if err := msg.InsertInto(jout.Node()).LastErr; err != nil {
 						handleErr(err, w)
 						return
@@ -56,7 +56,7 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				<-wait
 				sub()
 			} else {
-				jout := &nodes.JSONWtr{Out: w}
+				jout := &nodeutil.JSONWtr{Out: w}
 				err = sel.InsertInto(jout.Node()).LastErr
 			}
 		case "PUT":
@@ -78,13 +78,13 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				}
 				if outputSel := sel.Action(input); !outputSel.IsNil() && a.Output() != nil {
 					w.Header().Set("Content-Type", mime.TypeByExtension(".json"))
-					jout := &nodes.JSONWtr{Out: w}
+					jout := &nodeutil.JSONWtr{Out: w}
 					err = outputSel.InsertInto(jout.Node()).LastErr
 				} else {
 					err = outputSel.LastErr
 				}
 			} else {
-				payload = nodes.ReadJSONIO(r.Body)
+				payload = nodeutil.ReadJSONIO(r.Body)
 				err = sel.InsertFrom(payload).LastErr
 			}
 		case "OPTIONS":
@@ -105,5 +105,5 @@ func requestNode(r *http.Request) (node.Node, error) {
 	if isMultiPartForm(r.Header) {
 		return formNode(r)
 	}
-	return nodes.ReadJSONIO(r.Body), nil
+	return nodeutil.ReadJSONIO(r.Body), nil
 }

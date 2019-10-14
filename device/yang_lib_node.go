@@ -6,7 +6,7 @@ import (
 
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/val"
 )
 
@@ -17,7 +17,7 @@ import (
 type ModuleAddresser func(m *meta.Module) string
 
 func LocalDeviceYangLibNode(addresser ModuleAddresser, d Device) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "modules-state":
@@ -29,7 +29,7 @@ func LocalDeviceYangLibNode(addresser ModuleAddresser, d Device) node.Node {
 }
 
 func localYangLibModuleState(addresser ModuleAddresser, d Device) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "module":
@@ -51,7 +51,7 @@ func YangLibModuleList(addresser ModuleAddresser, mods map[string]*meta.Module) 
 	index.Sort(func(a, b reflect.Value) bool {
 		return strings.Compare(a.String(), b.String()) < 0
 	})
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
 			key := r.Key
 			var m *meta.Module
@@ -74,7 +74,7 @@ func YangLibModuleList(addresser ModuleAddresser, mods map[string]*meta.Module) 
 }
 
 func yangLibModuleHandleNode(addresser ModuleAddresser, m *meta.Module) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			// deviation
 			// submodule

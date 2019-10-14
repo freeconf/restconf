@@ -7,11 +7,11 @@ import (
 	"github.com/freeconf/yang/val"
 
 	"github.com/freeconf/yang/node"
-	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/nodeutil"
 )
 
 func RegistrarNode(registrar Registrar) node.Node {
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "registrations":
@@ -53,7 +53,7 @@ func registrationsNode(registrar Registrar) node.Node {
 	// assume local registrar, need better way to iterate
 	index := node.NewIndex(registrar.(*LocalRegistrar).regs)
 
-	return &nodes.Basic{
+	return &nodeutil.Basic{
 		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
 			var reg Registration
 			found := false
@@ -70,7 +70,7 @@ func registrationsNode(registrar Registrar) node.Node {
 				}
 			}
 			if found {
-				return nodes.ReflectChild(&reg), key, nil
+				return nodeutil.ReflectChild(&reg), key, nil
 			}
 			return nil, nil, nil
 		},
@@ -78,5 +78,5 @@ func registrationsNode(registrar Registrar) node.Node {
 }
 
 func regNode(reg *Registration) node.Node {
-	return nodes.ReflectChild(reg)
+	return nodeutil.ReflectChild(reg)
 }
