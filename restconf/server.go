@@ -192,7 +192,7 @@ func (self *Server) Subscribe(sub *Subscription) error {
 	if err != nil {
 		return err
 	} else if b == nil {
-		return c2.NewErrC("No module found:"+sub.Module, 404)
+		return c2.NotFoundError("No module found:" + sub.Module)
 	}
 	if sel := b.Root().Find(sub.Path); sel.LastErr == nil {
 		closer, err := sel.Notifications(sub.Notify)
@@ -233,7 +233,7 @@ func (self *Server) serveStreamSource(w http.ResponseWriter, s source.Opener, pa
 		handleErr(err, w)
 		return
 	} else if rdr == nil {
-		handleErr(c2.NewErrC("not found", 404), w)
+		handleErr(c2.NotFoundError("not found"), w)
 		return
 	}
 	ext := filepath.Ext(path)
@@ -253,7 +253,7 @@ func (self *Server) findDevice(deviceId string) (device.Device, error) {
 		return nil, err
 	}
 	if device == nil {
-		return nil, c2.NewErrC("device not found "+deviceId, 404)
+		return nil, c2.NotFoundError("device not found " + deviceId)
 	}
 	return device, nil
 }
@@ -262,7 +262,7 @@ func (self *Server) shiftOperationAndDevice(w http.ResponseWriter, orig *url.URL
 	//  operation[=deviceId]/...
 	op, deviceId, p := shiftOptionalParamWithinSegment(orig, '=', '/')
 	if op == "" {
-		handleErr(c2.NewErrC("no operation found in path", 404), w)
+		handleErr(c2.NotFoundError("no operation found in path"), w)
 		return op, nil, orig
 	}
 	device, err := self.findDevice(deviceId)
@@ -285,7 +285,7 @@ func (self *Server) shiftBrowserHandler(d device.Device, w http.ResponseWriter, 
 		}
 	}
 
-	handleErr(c2.NewErrC("no module found in path", 404), w)
+	handleErr(c2.NotFoundError("no module found in path"), w)
 	return nil, orig
 }
 

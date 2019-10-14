@@ -3,6 +3,7 @@ package restconf
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -201,7 +202,7 @@ func DecodeSubscriptionStream(r io.Reader, conn *SubscriptionManager) error {
 				if r := recover(); r != nil {
 					err, isErr := r.(error)
 					if !isErr {
-						err = c2.NewErr(fmt.Sprintf("%v", r))
+						err = fmt.Errorf("%v", r)
 					}
 					conn.Send <- &SubscriptionOutgoing{
 						Id:      msg.Id,
@@ -213,7 +214,7 @@ func DecodeSubscriptionStream(r io.Reader, conn *SubscriptionManager) error {
 			switch msg.Op {
 			case "+":
 				if msg.Path == "" || msg.Module == "" || msg.Id == "" {
-					return c2.NewErr("path, id and module are all required in subscription")
+					return errors.New("path, id and module are all required in subscription")
 				}
 				return conn.newSubscription(msg)
 			case "-":
@@ -224,7 +225,7 @@ func DecodeSubscriptionStream(r io.Reader, conn *SubscriptionManager) error {
 					conn.removeGroup(msg.Group)
 				}
 			default:
-				return c2.NewErr("Unrecognized notify operation: " + msg.Op)
+				return fmt.Errorf("Unrecognized notify operation: %s", msg.Op)
 			}
 			return nil
 		}

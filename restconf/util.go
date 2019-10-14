@@ -41,11 +41,8 @@ func handleErr(err error, w http.ResponseWriter) bool {
 	if err == nil {
 		return false
 	}
-	if httpErr, ok := err.(c2.HttpError); ok {
-		if httpErr.HttpCode() >= 500 {
-			c2.Err.Print(httpErr.Error())
-		}
-		http.Error(w, httpErr.Error(), httpErr.HttpCode())
+	if code, isHttpErr := c2.HttpableError(err); isHttpErr {
+		http.Error(w, err.Error(), code)
 	} else {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

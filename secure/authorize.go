@@ -34,7 +34,7 @@ const (
 	Full
 )
 
-var UnauthorizedError = c2.NewErrC("unauthorized", 401)
+var UnauthorizedError = c2.HttpError(401)
 
 func (self *Role) CheckListPreConstraints(r *node.ListRequest) (bool, error) {
 	requested := Read

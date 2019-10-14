@@ -3,6 +3,7 @@ package restconf
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -104,7 +105,7 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 	return c, nil
 }
 
-var badAddressErr = c2.NewErr("Expected format: http://server/restconf[=device]/operation/module:path")
+var badAddressErr = errors.New("Expected format: http://server/restconf[=device]/operation/module:path")
 
 type client struct {
 	address       Address
@@ -259,7 +260,7 @@ func (self *client) clientDo(method string, params string, p *node.Path, payload
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		msg, _ := ioutil.ReadAll(resp.Body)
-		return nil, c2.NewErrC(string(msg), resp.StatusCode)
+		return nil, fmt.Errorf("(%d) %s", resp.StatusCode, string(msg))
 	}
 	return nodes.ReadJSONIO(resp.Body), nil
 }

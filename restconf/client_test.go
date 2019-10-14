@@ -11,9 +11,9 @@ import (
 
 	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/meta"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
 )
 
 func Test_Client(t *testing.T) {
@@ -259,5 +259,9 @@ func (self requestBuilder) ddef(y string) meta.Definition {
 
 func (requestBuilder) m(y string) *meta.Module {
 	mstr := fmt.Sprint(`module m { namespace ""; prefix ""; revision 0; `, y, `}`)
-	return parser.RequireModuleFromString(nil, mstr)
+	m, err := parser.LoadModuleFromString(nil, mstr)
+	if err != nil {
+		panic(err)
+	}
+	return m
 }

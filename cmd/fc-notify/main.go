@@ -10,7 +10,7 @@ import (
 	"github.com/freeconf/yang/c2"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
-	"github.com/freeconf/yang/parser"
+	"github.com/freeconf/yang/source"
 )
 
 // Subscribes to a notification and exits on first message
@@ -32,7 +32,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	d, err := restconf.ProtocolHandler(parser.YangPath())(address)
+
+	ypathEnv := os.Getenv("YANGPATH")
+	if ypathEnv == "" {
+		log.Fatal("YANGPATH environment variable not set")
+	}
+	ypath := source.Path(ypathEnv)
+
+	d, err := restconf.ProtocolHandler(ypath)(address)
 	if err != nil {
 		panic(err)
 	}

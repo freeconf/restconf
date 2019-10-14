@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
+	"log"
+	"os"
 
 	"github.com/freeconf/manage/secure"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 
 	"github.com/freeconf/manage/device"
@@ -34,12 +35,16 @@ func main() {
 
 	// where all yang files are stored just for the server
 	// models for devices that register are pulled automatically
-	yangPath := parser.YangPath()
+	ypathEnv := os.Getenv("YANGPATH")
+	if ypathEnv == "" {
+		log.Fatal("YANGPATH environment variable not set")
+	}
+	ypath := source.Path(ypathEnv)
 
 	// Even though this is a server component, we still organize things thru a device
 	// because this server will appear like a "Device" to application management systems
 	// "northbound"" representing all the devices that are "southbound".
-	d := device.NewWithUi(yangPath, uiPath)
+	d := device.NewWithUi(ypath, uiPath)
 
 	a := secure.NewRbac()
 	d.Add("secure", secure.Manage(a))

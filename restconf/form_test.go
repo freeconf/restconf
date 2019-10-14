@@ -1,19 +1,19 @@
 package restconf
 
 import (
-	"os"
 	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
 )
 
 type handlerImpl http.HandlerFunc
@@ -23,7 +23,7 @@ func (impl handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestForm(t *testing.T) {
-	m := parser.RequireModuleFromString(nil, `
+	m, err := parser.LoadModuleFromString(nil, `
 		module test {
 			rpc x {
 				input {
@@ -35,6 +35,9 @@ func TestForm(t *testing.T) {
 			}
 		}
 	`)
+	if err != nil {
+		t.Fatal(err)
+	}
 	done := make(chan bool, 2)
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b := node.NewBrowser(m, formDummyNode(t))

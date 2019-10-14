@@ -168,10 +168,8 @@ func (self *clientNode) startEditMode(path *node.Path) error {
 func (self *clientNode) validNavigation(target *node.Path) (bool, error) {
 	if !self.found {
 		_, err := self.request("OPTIONS", target, noSelection)
-		if herr, ok := err.(c2.HttpError); ok {
-			if herr.HttpCode() == 404 {
-				return false, nil
-			}
+		if _, ok := err.(c2.NotFoundError); ok {
+			return false, nil
 		}
 		if err != nil {
 			return false, err

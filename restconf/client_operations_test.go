@@ -1,19 +1,20 @@
 package restconf
 
 import (
+	"fmt"
 	"io"
 	"testing"
 
 	"io/ioutil"
 
 	"github.com/freeconf/yang/c2"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodes"
+	"github.com/freeconf/yang/parser"
 )
 
 func Test_ClientOperations(t *testing.T) {
-	m := parser.RequireModuleFromString(nil, `module x {namespace ""; prefix ""; revision 0;
+	m, err := parser.LoadModuleFromString(nil, `module x {namespace ""; prefix ""; revision 0;
 		container car {			
 			container mileage {
 				leaf odometer {
@@ -30,6 +31,9 @@ func Test_ClientOperations(t *testing.T) {
 			}	
 		}
 }`)
+	if err != nil {
+		t.Fatal(err)
+	}
 	support := &testDriverFlowSupport{
 		t: t,
 	}
@@ -73,7 +77,7 @@ func (self *testDriverFlowSupport) clientDo(method string, params string, p *nod
 	case "GET":
 		in, found := self.get[path]
 		if !found {
-			return node.ErrorNode{Err: c2.NewErr("no response for " + path)}, nil
+			return node.ErrorNode{Err: fmt.Errorf("no response for %s", path)}, nil
 		}
 		return nodes.ReadJSON(in), nil
 	case "PUT":

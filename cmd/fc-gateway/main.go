@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
+	"log"
+	"os"
 
 	"github.com/freeconf/manage/gateway"
 	"github.com/freeconf/manage/restconf"
 
 	"github.com/freeconf/manage/device"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 
 	"github.com/freeconf/yang/c2"
@@ -29,7 +30,11 @@ func main() {
 	c2.DebugLog(*verbose)
 
 	// where all yang files are stored
-	ypath := parser.YangPath()
+	ypathEnv := os.Getenv("YANGPATH")
+	if ypathEnv == "" {
+		log.Fatal("YANGPATH environment variable not set")
+	}
+	ypath := source.Path(ypathEnv)
 
 	// Even though this is a server component, we still organize things thru a device
 	// because this proxy will appear like a "Device" to application management systems
