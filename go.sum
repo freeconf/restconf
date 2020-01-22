@@ -1,6 +1,9 @@
 github.com/freeconf/yang v0.0.0-20190914002315-cea75a3dc004 h1:arWA3m3z5mvb5H+p4LlYSd6FJMVwd7HSQbsPXg9JY8Q=
 github.com/freeconf/yang v0.0.0-20190914002315-cea75a3dc004/go.mod h1:DM7UtODVwE9C1H8QrBUr8VDu6/aSzHBMSqizLDBR2do=
+github.com/freeconf/yang v0.0.0-20190915134354-9d96c3c868e8 h1:OuvKVq2y2MOaxiFx4juYvD9xfSbZpjxJPWZV4b6Hbts=
 github.com/freeconf/yang v0.0.0-20190915134354-9d96c3c868e8/go.mod h1:LM+xUWSA0mw8zkrD02X8tsEI+L6hBGc/MDOiVXQRCuM=
+github.com/freeconf/yang v0.0.0-20200122003835-a31e8a9b9760 h1:z6OgG+If6z2tyLKN9mqfQ34R/U4wn+TjTerd+usqSYI=
+github.com/freeconf/yang v0.0.0-20200122003835-a31e8a9b9760/go.mod h1:1umw1W13lLvPkHIqdUgmrTzLAmDXkbhrYng0Jrs92tw=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190308221718-fc843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
@@ -11,6 +14,7 @@ golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297/go.mod h1:z5CRVTTTmAJ677TzLL
 golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2 h1:4dVFTC832rPn4pomLSz1vA+are2+dU19w1H8OngV7nc=
 golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa h1:F+8P+gmewFQYRk6JoLQLwjBCTu3mcIURZfNkVweuRKA=
+golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
