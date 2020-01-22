@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/freeconf/manage/device"
+	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"

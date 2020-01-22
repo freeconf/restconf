@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/freeconf/manage/gateway"
-	"github.com/freeconf/manage/restconf"
+	"github.com/freeconf/restconf/gateway"
+	"github.com/freeconf/restconf"
 
-	"github.com/freeconf/manage/device"
+	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/source"
 
 	"github.com/freeconf/yang/fc"

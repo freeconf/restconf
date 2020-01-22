@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/freeconf/manage/device"
+	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
@@ -242,7 +242,7 @@ func (self httpStream) OpenStream(name string, ext string) (io.Reader, error) {
 func (self *client) clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error) {
 	var req *http.Request
 	var err error
-	mod := meta.Root(p.Meta())
+	mod := meta.RootModule(p.Meta())
 	fullUrl := fmt.Sprint(self.address.Data, mod.Ident(), ":", p.StringNoModule())
 	if params != "" {
 		fullUrl = fmt.Sprint(fullUrl, "?", params)

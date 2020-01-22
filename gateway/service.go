@@ -1,7 +1,7 @@
 package gateway
 
 import (
-	"github.com/freeconf/manage/device"
+	"github.com/freeconf/restconf/device"
 )
 
 type Service struct {

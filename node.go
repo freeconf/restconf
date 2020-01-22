@@ -1,7 +1,7 @@
 package restconf
 
 import (
-	"github.com/freeconf/manage/stock"
+	"github.com/freeconf/restconf/stock"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"

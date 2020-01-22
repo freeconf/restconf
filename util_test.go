@@ -121,17 +121,17 @@ func Test_shift(t *testing.T) {
 		expectedRaw     string
 	}{
 		{
-			in:              "http://server:port/some/path/here",
+			in:              "http://server:999/some/path/here",
 			expectedSegment: "some",
 			expectedPath:    "path/here",
 		},
 		{
-			in:              "http://server:port/some/path/here?p=1&z=x",
+			in:              "http://server:999/some/path/here?p=1&z=x",
 			expectedSegment: "some",
 			expectedPath:    "path/here",
 		},
 		{
-			in:              "http://server:port/some/path=xxx%30xxx/here",
+			in:              "http://server:999/some/path=xxx%30xxx/here",
 			expectedSegment: "some",
 			expectedPath:    "path=xxx0xxx/here",
 			expectedRaw:     "path=xxx%30xxx/here",
@@ -175,7 +175,7 @@ func Test_shiftOptionalParamWithinSegment(t *testing.T) {
 		path  string
 	}{
 		{
-			in:   "http://server:port/some/path/here",
+			in:   "http://server:999/some/path/here",
 			seg:  "some",
 			path: "path/here",
 		},

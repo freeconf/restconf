@@ -228,7 +228,7 @@ func (requestBuilder) cr(s node.Selection, child string) node.ChildRequest {
 		panic(child + " not found")
 	}
 	return node.ChildRequest{
-		Meta: m.(meta.HasDataDefs),
+		Meta: m.(meta.HasDataDefinitions),
 		Request: node.Request{
 			Selection: s,
 		},
@@ -254,7 +254,7 @@ func (self requestBuilder) action(y string) *meta.Rpc {
 }
 
 func (self requestBuilder) ddef(y string) meta.Definition {
-	return self.m(y).DataDefs()[0]
+	return self.m(y).DataDefinitions()[0]
 }
 
 func (requestBuilder) m(y string) *meta.Module {

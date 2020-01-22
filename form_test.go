@@ -48,7 +48,7 @@ func TestForm(t *testing.T) {
 		w.Write([]byte("ok"))
 		done <- true
 	}
-	srv := &http.Server{Addr: "0.0.0.0:9999", Handler: handlerImpl(handler)}
+	srv := &http.Server{Addr: "127.0.0.1:9999", Handler: handlerImpl(handler)}
 	go func() {
 		srv.ListenAndServe()
 	}()
@@ -77,6 +77,7 @@ func post(t *testing.T) {
 		chkErr(t, err)
 		req.Header.Set("Content-Type", form.FormDataContentType())
 		_, err = http.DefaultClient.Do(req)
+		chkErr(t, err)
 		wait <- true
 	}()
 	dataPart, err := form.CreateFormField("a")

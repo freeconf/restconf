@@ -11,7 +11,7 @@ import (
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
 
-	"github.com/freeconf/manage/device"
+	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/meta"
 
 	"github.com/freeconf/yang/node"

@@ -73,7 +73,7 @@ func (self *Role) CheckActionPreConstraints(r *node.ActionRequest) (bool, error)
 }
 
 func (self *Role) ContextConstraint(s node.Selection) context.Context {
-	if acl, found := self.Access[meta.GetPath(s.Meta())]; found {
+	if acl, found := self.Access[meta.SchemaPath(s.Meta())]; found {
 		return context.WithValue(s.Context, permKey, acl.Permissions)
 	}
 	return s.Context
@@ -81,7 +81,7 @@ func (self *Role) ContextConstraint(s node.Selection) context.Context {
 
 func (self *Role) check(m meta.Meta, c context.Context, requested Permission) (bool, error) {
 	allowed := None
-	path := meta.GetPath(m)
+	path := meta.SchemaPath(m)
 	if acl, found := self.Access[path]; found {
 		allowed = acl.Permissions
 	} else if x := c.Value(permKey); x != nil {

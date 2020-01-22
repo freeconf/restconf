@@ -3,8 +3,8 @@ package restconf
 import (
 	"testing"
 
-	"github.com/freeconf/manage/device"
-	"github.com/freeconf/manage/gateway"
+	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/restconf/gateway"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/source"
 )
@@ -13,7 +13,7 @@ func TestCallHome(t *testing.T) {
 	fc.DebugLog(true)
 
 	registrar := gateway.NewLocalRegistrar()
-	ypath := source.Dir("../yang")
+	ypath := source.Dir("./yang")
 	regDevice := device.New(ypath)
 	if err := regDevice.Add("fc-registrar", gateway.RegistrarNode(registrar)); err != nil {
 		t.Error(err)

@@ -14,9 +14,9 @@ import (
 
 	"golang.org/x/net/websocket"
 
-	"github.com/freeconf/manage/device"
-	"github.com/freeconf/manage/secure"
-	"github.com/freeconf/manage/stock"
+	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/restconf/secure"
+	"github.com/freeconf/restconf/stock"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/nodeutil"

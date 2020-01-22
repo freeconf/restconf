@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/freeconf/manage/device"
-	"github.com/freeconf/manage/testdata"
+	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/restconf/testdata"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/nodeutil"
 )
