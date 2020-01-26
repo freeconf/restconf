@@ -1,6 +1,7 @@
 package restconf
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"testing"
@@ -67,10 +68,6 @@ type testDriverFlowSupport struct {
 	post map[string]string
 }
 
-func (self *testDriverFlowSupport) clientSubscriptions() map[string]*clientSubscription {
-	panic("not implemented")
-}
-
 func (self *testDriverFlowSupport) clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error) {
 	path := p.StringNoModule()
 	switch method {
@@ -94,6 +91,6 @@ func (self *testDriverFlowSupport) clientDo(method string, params string, p *nod
 	return nil, nil
 }
 
-func (self *testDriverFlowSupport) clientSocket() (io.Writer, error) {
+func (self *testDriverFlowSupport) clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error) {
 	panic("not implemented")
 }

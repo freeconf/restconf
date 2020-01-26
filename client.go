@@ -1,8 +1,9 @@
 package restconf
 
 import (
-	"encoding/base64"
-	"encoding/json"
+	"bytes"
+	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/freeconf/gconf/c2"
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
@@ -18,7 +20,6 @@ import (
 	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/source"
-	"golang.org/x/net/websocket"
 )
 
 // NewClient interfaces with a remote RESTCONF server.  This also implements device.Device
@@ -61,7 +62,6 @@ func NewAddress(urlAddr string) (Address, error) {
 		Data:     urlAddr + "data/",
 		Schema:   urlAddr + "schema/",
 		Ui:       urlAddr + "ui/",
-		Stream:   "ws://" + urlParts.Host + "/restconf/streams",
 		Origin:   "http://" + urlParts.Host,
 		DeviceId: findDeviceIdInUrl(urlAddr),
 	}, nil
@@ -81,17 +81,23 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 	if err != nil {
 		return nil, err
 	}
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
 	remoteSchemaPath := httpStream{
 		ypath:  self.YangPath,
-		client: http.DefaultClient,
+		client: httpClient,
 		url:    address.Schema,
 	}
 	c := &client{
-		address:       address,
-		yangPath:      self.YangPath,
-		schemaPath:    source.Any(self.YangPath, remoteSchemaPath.OpenStream),
-		client:        http.DefaultClient,
-		subscriptions: make(map[string]*clientSubscription),
+		address:    address,
+		yangPath:   self.YangPath,
+		schemaPath: source.Any(self.YangPath, remoteSchemaPath.OpenStream),
+		client:     httpClient,
 	}
 	d := &clientNode{support: c, device: address.DeviceId}
 	m := parser.RequireModule(self.YangPath, "ietf-yang-library")
@@ -99,7 +105,7 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 	modules, err := device.LoadModules(b, remoteSchemaPath)
 	fc.Debug.Printf("loaded modules %v", modules)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not load modules. %s", err)
 	}
 	c.modules = modules
 	return c, nil
@@ -108,14 +114,12 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 var badAddressErr = errors.New("Expected format: http://server/restconf[=device]/operation/module:path")
 
 type client struct {
-	address       Address
-	yangPath      source.Opener
-	schemaPath    source.Opener
-	client        *http.Client
-	origin        string
-	_ws           *websocket.Conn
-	subscriptions map[string]*clientSubscription
-	modules       map[string]*meta.Module
+	address    Address
+	yangPath   source.Opener
+	schemaPath source.Opener
+	client     *http.Client
+	origin     string
+	modules    map[string]*meta.Module
 }
 
 func (self *client) SchemaSource() source.Opener {
@@ -124,7 +128,7 @@ func (self *client) SchemaSource() source.Opener {
 
 func (self *client) UiSource() source.Opener {
 	s := httpStream{
-		client: http.DefaultClient,
+		client: self.client,
 		url:    self.address.Ui,
 	}
 	return s.OpenStream
@@ -140,63 +144,10 @@ func (self *client) Browser(module string) (*node.Browser, error) {
 }
 
 func (self *client) Close() {
-	if self._ws != nil {
-		self._ws.Close()
-		self._ws = nil
-	}
 }
 
 func (self *client) Modules() map[string]*meta.Module {
 	return self.modules
-}
-
-func (self *client) clientSocket() (io.Writer, error) {
-	// lazy start websocket connection to be more efficient if it's never used
-	// but I have no data how how much resources this saves
-	if self._ws == nil {
-		var err error
-		if self._ws, err = websocket.Dial(self.address.Stream, "", self.address.Origin); err != nil {
-			return nil, err
-		}
-		go self.watch(self._ws)
-	}
-	return self._ws, nil
-}
-
-func (self *client) watch(ws io.Reader) {
-	for {
-		var notification map[string]interface{}
-		if err := json.NewDecoder(ws).Decode(&notification); err != nil {
-			fc.Err.Print(err)
-			continue
-		}
-		var payload string
-		if payloadData, exists := notification["payload"]; !exists {
-			fc.Err.Print("No payload found")
-			continue
-		} else {
-			if payloadDecoded, err := base64.StdEncoding.DecodeString(payloadData.(string)); err != nil {
-				fc.Err.Print(err)
-				continue
-			} else {
-				payload = string(payloadDecoded)
-			}
-		}
-		if notification["type"] == "error" {
-			fc.Err.Print(payload)
-			continue
-		}
-		idVal := notification["id"]
-		if l := self.subscriptions[idVal.(string)]; l != nil {
-			l.notify(l.sel.Split(nodeutil.ReadJSON(payload)))
-		} else {
-			fc.Info.Printf("no listener found with id %s", idVal)
-		}
-	}
-}
-
-func (self *client) clientSubscriptions() map[string]*clientSubscription {
-	return self.subscriptions
 }
 
 func (self *client) module(module string) (*meta.Module, error) {
@@ -210,6 +161,36 @@ func (self *client) module(module string) (*meta.Module, error) {
 		self.modules[module] = m
 	}
 	return m, nil
+}
+
+func (self *client) clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error) {
+	mod := meta.RootModule(p.Meta())
+	fullUrl := fmt.Sprint(self.address.Data, mod.Ident(), ":", p.StringNoModule())
+	req, err := http.NewRequest("GET", fullUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "text/event-stream")
+	c2.Info.Printf("<=> SSE %s", fullUrl)
+	resp, err := self.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	stream := make(chan node.Node)
+	go func() {
+		events := decodeSse(resp.Body)
+		defer resp.Body.Close()
+		for {
+			select {
+			case event := <-events:
+				stream <- nodeutil.ReadJSONIO(bytes.NewReader(event))
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return stream, nil
 }
 
 // ClientSchema downloads schema and implements yang.StreamSource so it can transparently

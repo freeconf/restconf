@@ -45,7 +45,7 @@ func Node(mgmt *Server, ypath source.Opener) node.Node {
 			case "streamCount":
 				hnd.Val = val.Int32(mgmt.notifiers.Len())
 			case "subscriptionCount":
-				hnd.Val = val.Int32(mgmt.SubscriptionCount())
+				hnd.Val = val.Int32(subscribeCount)
 			default:
 				return p.Field(r, hnd)
 			}

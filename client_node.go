@@ -2,14 +2,11 @@ package restconf
 
 import (
 	"bytes"
-	"fmt"
+	"context"
 
 	"io"
 
-	"time"
-
 	"github.com/freeconf/yang/fc"
-	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/val"
@@ -30,9 +27,8 @@ type clientNode struct {
 // testing but also because a lot of what driver does is potentially universal to proxying
 // for other protocols and might allow reusablity when other protocols are added
 type clientSupport interface {
-	clientSubscriptions() map[string]*clientSubscription
 	clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error)
-	clientSocket() (io.Writer, error)
+	clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error)
 }
 
 var noSelection node.Selection
@@ -102,23 +98,20 @@ func (self *clientNode) node() node.Node {
 		return self.read.Field(r, hnd)
 	}
 	n.OnNotify = func(r node.NotifyRequest) (node.NotifyCloser, error) {
-		ws, err := self.support.clientSocket()
+		var params string // TODO: support params
+		ctx, cancel := context.WithCancel(context.Background())
+		events, err := self.support.clientStream(params, r.Selection.Path, ctx)
 		if err != nil {
+			cancel()
 			return nil, err
 		}
-		sub, err := newDriverSub(r.Stream, ws, r.Selection, self.device)
-		if err != nil {
-			return nil, err
-		}
-		self.support.clientSubscriptions()[sub.id] = sub
-		closer := func() error {
-			// get new ws reference in case it's different
-			ws2, err2 := self.support.clientSocket()
-			if err2 != nil {
-				return err2
+		go func() {
+			for n := range events {
+				r.Send(n)
 			}
-			sub.close(ws2)
-			delete(self.support.clientSubscriptions(), sub.id)
+		}()
+		closer := func() error {
+			cancel()
 			return nil
 		}
 		return closer, nil
@@ -192,34 +185,4 @@ func (self *clientNode) request(method string, p *node.Path, in node.Selection) 
 		}
 	}
 	return self.support.clientDo(method, "", p, &payload)
-}
-
-type clientSubscription struct {
-	id     string
-	sel    node.Selection
-	stream node.NotifyStream
-}
-
-func (self *clientSubscription) close(ws io.Writer) error {
-	msg := fmt.Sprintf(`{"op":"-","id":"%s"}`, self.id)
-	_, err := ws.Write([]byte(msg))
-	return err
-}
-
-func newDriverSub(stream node.NotifyStream, ws io.Writer, sel node.Selection, device string) (*clientSubscription, error) {
-	module := meta.RootModule(sel.Path.Meta()).Ident()
-	path := sel.Path.StringNoModule()
-	sub := clientSubscription{
-		id:     fmt.Sprintf("%s:%s|%d", module, path, time.Now().UnixNano()),
-		sel:    sel,
-		stream: stream,
-	}
-	msg := fmt.Sprintf(`{"op":"+","id":"%s","path":"%s","module":"%s","device":"%s"}`,
-		sub.id, path, module, device)
-	_, err := ws.Write([]byte(msg))
-	return &sub, err
-}
-
-func (self *clientSubscription) notify(msg node.Selection) {
-	self.stream(msg)
 }

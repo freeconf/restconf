@@ -1,6 +1,7 @@
 package restconf
 
 import (
+	"fmt"
 	"mime"
 	"net/http"
 
@@ -16,6 +17,8 @@ type browserHandler struct {
 	browser *node.Browser
 }
 
+var subscribeCount int
+
 func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var payload node.Node
@@ -27,6 +30,7 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	sel := self.browser.RootWithContext(ctx)
 	if sel = sel.FindUrl(r.URL); sel.LastErr == nil {
+		hdr := w.Header()
 		if sel.IsNil() {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
@@ -36,30 +40,61 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		switch r.Method {
 		case "DELETE":
+			// CRUD - Delete
 			err = sel.Delete()
 		case "GET":
-			w.Header().Set("Content-Type", mime.TypeByExtension(".json"))
-
 			// compliance note : decided to support notifictions on get by devilering
 			// first event, then closing connection.  Spec calls for SSE
 			if meta.IsNotification(sel.Meta()) {
+				hdr.Set("Content-Type", "text/event-stream")
+				hdr.Set("Cache-Control", "no-cache")
+				hdr.Set("Connection", "keep-alive")
+				hdr.Set("Access-Control-Allow-Origin", "*")
+				// default is chunked and web browsers don't know to read after each
+				// flush
+				hdr.Set("Transfer-Encoding", "identity")
+
 				var sub node.NotifyCloser
-				wait := make(chan struct{})
+				flusher, hasFlusher := w.(http.Flusher)
+				if !hasFlusher {
+					panic("invalid response writer")
+				}
+				closer, hasCloser := w.(http.CloseNotifier)
+				if !hasCloser {
+					panic("invalid response writer")
+				}
+				subscribeCount++
+				defer func() {
+					subscribeCount--
+				}()
 				sub, err = sel.Notifications(func(msg node.Selection) {
+
+					// According to SSE Spec, each event needs following format:
+					// data: {payload}\n\n
+					fmt.Fprint(w, "data: ")
 					jout := &nodeutil.JSONWtr{Out: w}
 					if err := msg.InsertInto(jout.Node()).LastErr; err != nil {
 						handleErr(err, w)
 						return
 					}
-					wait <- struct{}{}
+
+					fmt.Fprint(w, "\n\n")
+					flusher.Flush()
 				})
-				<-wait
-				sub()
+				if err != nil {
+					handleErr(err, w)
+					return
+				}
+				defer sub()
+				<-closer.CloseNotify()
 			} else {
+				// CRUD - Read
+				hdr.Set("Content-Type", mime.TypeByExtension(".json"))
 				jout := &nodeutil.JSONWtr{Out: w}
 				err = sel.InsertInto(jout.Node()).LastErr
 			}
 		case "PUT":
+			// CRUD - Update
 			input, err := requestNode(r)
 			if err != nil {
 				handleErr(err, w)
@@ -68,6 +103,7 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			err = sel.UpsertFrom(input).LastErr
 		case "POST":
 			if meta.IsAction(sel.Meta()) {
+				// RPC
 				a := sel.Meta().(*meta.Rpc)
 				var input node.Node
 				if a.Input() != nil {
@@ -84,6 +120,7 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					err = outputSel.LastErr
 				}
 			} else {
+				// CRUD - Insert
 				payload = nodeutil.ReadJSONIO(r.Body)
 				err = sel.InsertFrom(payload).LastErr
 			}

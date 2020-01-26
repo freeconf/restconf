@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"golang.org/x/net/websocket"
-
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/restconf/secure"
 	"github.com/freeconf/restconf/stock"
@@ -130,11 +128,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		op2, p := shift(p, '/')
 		r.URL = p
 		switch op2 {
-		case "streams":
-			// no device id in url is normal. this allows client to share one websocket connection
-			// to support many devices.
-			self.serveNotifications(w, r)
-		case "data":
+		case "data", "streams":
 			self.serveData(device, w, r)
 		case "ui":
 			self.serveStreamSource(w, device.UiSource(), r.URL.Path)
@@ -181,50 +175,6 @@ func (self *Server) serveData(d device.Device, w http.ResponseWriter, r *http.Re
 		r.URL = p
 		hndlr.ServeHTTP(w, r)
 	}
-}
-
-func (self *Server) Subscribe(sub *Subscription) error {
-	device, err := self.findDevice(sub.DeviceId)
-	if err != nil {
-		return err
-	}
-	b, err := device.Browser(sub.Module)
-	if err != nil {
-		return err
-	} else if b == nil {
-		return fc.NotFoundError("No module found:" + sub.Module)
-	}
-	if sel := b.Root().Find(sub.Path); sel.LastErr == nil {
-		closer, err := sel.Notifications(sub.Notify)
-		if err != nil {
-			return err
-		}
-		sub.Notification = sel.Meta().(*meta.Notification)
-		sub.Closer = closer
-	} else {
-		return sel.LastErr
-	}
-	return nil
-}
-
-func (self *Server) serveNotifications(w http.ResponseWriter, r *http.Request) {
-	socketHndlr := &wsNotifyService{
-		factory: self,
-		timeout: self.NotifyKeepaliveTimeoutMs,
-	}
-	elem := self.notifiers.PushBack(socketHndlr)
-	defer self.notifiers.Remove(elem)
-	websocket.Handler(socketHndlr.Handle).ServeHTTP(w, r)
-}
-
-func (self *Server) SubscriptionCount() int {
-	var c int
-	p := self.notifiers.Front()
-	for p != nil {
-		c += p.Value.(*wsNotifyService).conn.mgr.Len()
-		p = p.Next()
-	}
-	return c
 }
 
 func (self *Server) serveStreamSource(w http.ResponseWriter, s source.Opener, path string) {
@@ -290,7 +240,8 @@ func (self *Server) shiftBrowserHandler(d device.Device, w http.ResponseWriter, 
 }
 
 func (self *Server) serveStaticRoute(w http.ResponseWriter, r *http.Request) bool {
-	op, _ := shift(r.URL, '/')
+	_, p := shift(r.URL, '/')
+	op, _ := shift(p, '/')
 	switch op {
 	case "host-meta":
 		// RESTCONF Sec. 3.1
