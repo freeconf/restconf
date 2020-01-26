@@ -34,8 +34,6 @@ const (
 	Full
 )
 
-var UnauthorizedError = fc.HttpError(401)
-
 func (self *Role) CheckListPreConstraints(r *node.ListRequest) (bool, error) {
 	requested := Read
 	if r.New {
@@ -93,5 +91,5 @@ func (self *Role) check(m meta.Meta, c context.Context, requested Permission) (b
 	if allowed >= requested {
 		return true, nil
 	}
-	return false, UnauthorizedError
+	return false, fc.UnauthorizedError
 }

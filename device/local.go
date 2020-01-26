@@ -2,6 +2,7 @@ package device
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 
@@ -94,7 +95,7 @@ func (self *Local) ApplyStartupConfigData(config map[string]interface{}) error {
 			return err
 		}
 		if b == nil {
-			return fc.NotFoundError("browser not found:" + module)
+			return fmt.Errorf("%w. browser not found: %s", fc.NotFoundError, module)
 		}
 		moduleCfg := data.(map[string]interface{})
 		if err := b.Root().UpsertFromSetDefaults(nodeutil.ReflectChild(moduleCfg)).LastErr; err != nil {

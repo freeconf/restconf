@@ -3,6 +3,7 @@ package restconf
 import (
 	"bytes"
 	"context"
+	"errors"
 
 	"io"
 
@@ -161,7 +162,7 @@ func (self *clientNode) startEditMode(path *node.Path) error {
 func (self *clientNode) validNavigation(target *node.Path) (bool, error) {
 	if !self.found {
 		_, err := self.request("OPTIONS", target, noSelection)
-		if _, ok := err.(fc.NotFoundError); ok {
+		if errors.Is(err, fc.NotFoundError) {
 			return false, nil
 		}
 		if err != nil {

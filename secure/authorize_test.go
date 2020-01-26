@@ -2,15 +2,16 @@ package secure
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/freeconf/yang/val"
 
 	"github.com/freeconf/yang/fc"
-	"github.com/freeconf/yang/parser"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
+	"github.com/freeconf/yang/parser"
 )
 
 type testAc struct {
@@ -76,7 +77,7 @@ notification identified {}
 		{
 			desc: "default",
 			acls: []*AccessControl{
-			/* empty */
+				/* empty */
 			},
 			read:      xHidden,
 			readPath:  xHidden,
@@ -181,7 +182,7 @@ func val2auth(v val.Value, err error) string {
 	if v == nil {
 		return xHidden
 	}
-	if err == UnauthorizedError {
+	if errors.Is(err, fc.UnauthorizedError) {
 		return xUnauth
 	}
 	return xAllowed
@@ -197,7 +198,7 @@ func sel2auth(s node.Selection) string {
 func err2auth(err error) string {
 	if err == nil {
 		return xAllowed
-	} else if err == UnauthorizedError {
+	} else if errors.Is(err, fc.UnauthorizedError) {
 		return xUnauth
 	}
 	panic(err.Error())

@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/freeconf/gconf/c2"
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
@@ -171,7 +170,7 @@ func (self *client) clientStream(params string, p *node.Path, ctx context.Contex
 		return nil, err
 	}
 	req.Header.Set("Accept", "text/event-stream")
-	c2.Info.Printf("<=> SSE %s", fullUrl)
+	fc.Info.Printf("<=> SSE %s", fullUrl)
 	resp, err := self.client.Do(req)
 	if err != nil {
 		return nil, err

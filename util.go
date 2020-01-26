@@ -41,11 +41,8 @@ func handleErr(err error, w http.ResponseWriter) bool {
 	if err == nil {
 		return false
 	}
-	if code, isHttpErr := fc.HttpableError(err); isHttpErr {
-		http.Error(w, err.Error(), code)
-	} else {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+
+	http.Error(w, err.Error(), fc.HttpStatusCode(err))
 	return true
 }
 

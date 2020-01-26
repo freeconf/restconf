@@ -56,11 +56,10 @@ func TestServer(t *testing.T) {
 	r, err = client.Do(req)
 	goldResponse(t, "testdata/gold/car.json", r, err)
 
-	// fails, will fix in next commit
-	// r, _ = client.Get(addr + "/restconf/schema/bogus")
-	// if r.StatusCode != 404 {
-	// 	t.Errorf("expected 404 got %d", r.StatusCode)
-	// }
+	r, _ = client.Get(addr + "/restconf/schema/bogus")
+	if r.StatusCode != 404 {
+		t.Errorf("expected 404 got %d", r.StatusCode)
+	}
 
 	s.Close()
 }
