@@ -2,6 +2,7 @@ package restconf
 
 import (
 	"errors"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -14,6 +15,27 @@ import (
 
 func isMultiPartForm(hdrs http.Header) bool {
 	return strings.HasPrefix(hdrs.Get("Content-Type"), "multipart/form-data")
+}
+
+// AnyDataReader is field value for anydata types that are io.Reader, but receiver might
+// also want the name submitted with reader.  Think file upload or plain old os.File as
+// underlying type
+type AnyDataReader interface {
+	io.Reader
+	Name() string
+}
+
+type formFile struct {
+	rdr  io.Reader
+	name string
+}
+
+func (ff formFile) Read(p []byte) (n int, err error) {
+	return ff.rdr.Read(p)
+}
+
+func (ff formFile) Name() string {
+	return ff.name
 }
 
 func formNode(req *http.Request) (node.Node, error) {
@@ -59,7 +81,13 @@ func formNode(req *http.Request) (node.Node, error) {
 				if err != nil {
 					return err
 				}
-				hnd.Val = val.Any{Thing: f}
+				// wrapping will make uploaded file name available to implementor
+				// should they be interested
+				wrap := formFile{
+					name: entry[0].Filename,
+					rdr:  f,
+				}
+				hnd.Val = val.Any{Thing: wrap}
 				return nil
 			}
 
