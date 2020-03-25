@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
@@ -68,6 +69,11 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					subscribeCount--
 				}()
 				sub, err = sel.Notifications(func(msg node.Selection) {
+					defer func() {
+						if r := recover(); r != nil {
+							fc.Err.Printf("recovered while attempting to send notification %s.", r)
+						}
+					}()
 
 					// According to SSE Spec, each event needs following format:
 					// data: {payload}\n\n
