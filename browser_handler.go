@@ -1,6 +1,7 @@
 package restconf
 
 import (
+	"bytes"
 	"fmt"
 	"mime"
 	"net/http"
@@ -60,39 +61,50 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				if !hasFlusher {
 					panic("invalid response writer")
 				}
-				closer, hasCloser := w.(http.CloseNotifier)
-				if !hasCloser {
-					panic("invalid response writer")
-				}
 				subscribeCount++
 				defer func() {
 					subscribeCount--
 				}()
+				errOnSend := make(chan error, 20)
+
 				sub, err = sel.Notifications(func(msg node.Selection) {
 					defer func() {
 						if r := recover(); r != nil {
-							fc.Err.Printf("recovered while attempting to send notification %s.", r)
+							errOnSend <- fmt.Errorf("recovered while attempting to send notification %s", r)
 						}
 					}()
 
+					// write into a buffer so we write data all at once to handle concurrent messages and
+					// ensure messages are not corrupted.  We could use a lock, but might cause deadlocks
+					var buf bytes.Buffer
+
 					// According to SSE Spec, each event needs following format:
 					// data: {payload}\n\n
-					fmt.Fprint(w, "data: ")
-					jout := &nodeutil.JSONWtr{Out: w}
-					if err := msg.InsertInto(jout.Node()).LastErr; err != nil {
-						handleErr(err, w)
-						return
-					}
+					fmt.Fprint(&buf, "data: ")
+					jout := &nodeutil.JSONWtr{Out: &buf}
 
-					fmt.Fprint(w, "\n\n")
+					err := msg.InsertInto(jout.Node()).LastErr
+
+					fmt.Fprint(&buf, "\n\n")
+					w.Write(buf.Bytes())
 					flusher.Flush()
+
+					if err != nil {
+						errOnSend <- err
+					}
 				})
 				if err != nil {
-					handleErr(err, w)
+					fc.Err.Print(err)
 					return
 				}
 				defer sub()
-				<-closer.CloseNotify()
+				select {
+				case <-r.Context().Done():
+					// normal client closing subscription
+				case err = <-errOnSend:
+					fc.Err.Print(err)
+				}
+				return
 			} else {
 				// CRUD - Read
 				hdr.Set("Content-Type", mime.TypeByExtension(".json"))

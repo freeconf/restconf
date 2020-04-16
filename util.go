@@ -37,11 +37,14 @@ func SplitAddress(fullurl string) (address string, module string, path string, e
 	return
 }
 
+// only call this when you know that no content has been sent to client
+// otherwise go will emit error that you're trying to change header when
+// it's too late.  i think harmless, but still not what you intended and
+// actuall error is eatten.
 func handleErr(err error, w http.ResponseWriter) bool {
 	if err == nil {
 		return false
 	}
-
 	http.Error(w, err.Error(), fc.HttpStatusCode(err))
 	return true
 }
