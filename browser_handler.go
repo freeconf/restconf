@@ -65,12 +65,13 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				defer func() {
 					subscribeCount--
 				}()
-				errOnSend := make(chan error, 20)
 
+				errOnSend := make(chan error, 20)
 				sub, err = sel.Notifications(func(msg node.Selection) {
 					defer func() {
 						if r := recover(); r != nil {
-							errOnSend <- fmt.Errorf("recovered while attempting to send notification %s", r)
+							err := fmt.Errorf("recovered while attempting to send notification %s", r)
+							errOnSend <- err
 						}
 					}()
 
@@ -84,14 +85,14 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					jout := &nodeutil.JSONWtr{Out: &buf}
 
 					err := msg.InsertInto(jout.Node()).LastErr
+					if err != nil {
+						errOnSend <- err
+						return
+					}
 
 					fmt.Fprint(&buf, "\n\n")
 					w.Write(buf.Bytes())
 					flusher.Flush()
-
-					if err != nil {
-						errOnSend <- err
-					}
 				})
 				if err != nil {
 					fc.Err.Print(err)
