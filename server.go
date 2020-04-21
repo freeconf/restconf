@@ -160,7 +160,7 @@ func (self *Server) serveSchema(w http.ResponseWriter, r *http.Request, ypath so
 		handleErr(err, w)
 		return
 	}
-	ylib, err := parser.LoadModule(ypath, "yang")
+	ylib, err := parser.LoadModule(ypath, "fc-yang")
 	if err != nil {
 		handleErr(err, w)
 		return
