@@ -3,6 +3,7 @@ package restconf
 import (
 	"bytes"
 	"container/list"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -35,7 +36,13 @@ type Server struct {
 
 	// Optional: Anything not handled by RESTCONF protocol can call this handler otherwise
 	UnhandledRequestHandler http.HandlerFunc
+
+	// Give app change to read custom header data and stuff into context so info can get
+	// to app layer
+	Filters []RequestFilter
 }
+
+type RequestFilter func(ctx context.Context, r *http.Request) (context.Context, error)
 
 func NewServer(d *device.Local) *Server {
 	m := &Server{
@@ -81,6 +88,7 @@ func (self *Server) ServeDevice(d device.Device) error {
 }
 
 func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
 	if fc.DebugLogEnabled() {
 		fc.Debug.Printf("%s %s", r.Method, r.URL)
 		if r.Body != nil {
@@ -94,6 +102,13 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					r.Body = ioutil.NopCloser(bytes.NewBuffer(content))
 				}
 			}
+		}
+	}
+	for _, f := range self.Filters {
+		var err error
+		if ctx, err = f(ctx, r); err != nil {
+			handleErr(badAddressErr, w)
+			return
 		}
 	}
 
@@ -129,7 +144,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r.URL = p
 		switch op2 {
 		case "data", "streams":
-			self.serveData(device, w, r)
+			self.serveData(ctx, device, w, r)
 		case "ui":
 			self.serveStreamSource(w, device.UiSource(), r.URL.Path)
 		case "schema":
@@ -137,7 +152,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			accept := r.Header.Get("Accept")
 			fc.Debug.Printf("accept %s", accept)
 			if strings.Contains(accept, "/json") {
-				self.serveSchema(w, r, device.SchemaSource())
+				self.serveSchema(ctx, w, r, device.SchemaSource())
 			} else {
 				self.serveStreamSource(w, device.SchemaSource(), r.URL.Path)
 			}
@@ -152,7 +167,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (self *Server) serveSchema(w http.ResponseWriter, r *http.Request, ypath source.Opener) {
+func (self *Server) serveSchema(ctx context.Context, w http.ResponseWriter, r *http.Request, ypath source.Opener) {
 	modName, p := shift(r.URL, '/')
 	r.URL = p
 	m, err := parser.LoadModule(ypath, modName)
@@ -167,13 +182,13 @@ func (self *Server) serveSchema(w http.ResponseWriter, r *http.Request, ypath so
 	}
 	b := nodeutil.Schema(ylib, m)
 	hndlr := &browserHandler{browser: b}
-	hndlr.ServeHTTP(w, r)
+	hndlr.ServeHTTP(ctx, w, r)
 }
 
-func (self *Server) serveData(d device.Device, w http.ResponseWriter, r *http.Request) {
+func (self *Server) serveData(ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request) {
 	if hndlr, p := self.shiftBrowserHandler(d, w, r.URL); hndlr != nil {
 		r.URL = p
-		hndlr.ServeHTTP(w, r)
+		hndlr.ServeHTTP(ctx, w, r)
 	}
 }
 

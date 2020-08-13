@@ -21,10 +21,11 @@ type browserHandler struct {
 
 var subscribeCount int
 
-func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	var err error
 	var payload node.Node
-	ctx, cancel := context.WithCancel(context.Background())
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithCancel(ctx)
 	defer cancel()
 	if r.RemoteAddr != "" {
 		host, _ := ipAddrSplitHostPort(r.RemoteAddr)
@@ -51,6 +52,7 @@ func (self *browserHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				hdr.Set("Content-Type", "text/event-stream")
 				hdr.Set("Cache-Control", "no-cache")
 				hdr.Set("Connection", "keep-alive")
+				hdr.Set("X-Accel-Buffering", "no")
 				hdr.Set("Access-Control-Allow-Origin", "*")
 				// default is chunked and web browsers don't know to read after each
 				// flush
