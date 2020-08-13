@@ -104,7 +104,7 @@ func formDummyNode(t *testing.T) node.Node {
 
 			v, err = r.Input.GetValue("b")
 			chkErr(t, err)
-			rdr, valid := v.Value().(io.ReadCloser)
+			rdr, valid := v.Value().(io.Reader)
 			if !valid {
 				panic("invalid")
 			}
@@ -113,7 +113,7 @@ func formDummyNode(t *testing.T) node.Node {
 			if string(actual) != "hello world" {
 				t.Error(actual)
 			}
-			defer rdr.Close()
+			//defer rdr.Close()
 			fmt.Printf(string(actual))
 			return nil, nil
 		},
