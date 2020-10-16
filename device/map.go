@@ -17,6 +17,7 @@ type Map interface {
 	OnModuleUpdate(module string, l ChangeListener) nodeutil.Subscription
 	Device(deviceId string) (Device, error)
 	Add(id string, d Device)
+	Remove(id string)
 	NthDeviceId(int) string
 	Len() int
 }
@@ -75,6 +76,10 @@ func (self *LocalMap) NthDeviceId(i int) string {
 
 func (self *LocalMap) Device(deviceId string) (Device, error) {
 	return self.devices[deviceId], nil
+}
+
+func (self *LocalMap) Remove(id string) {
+	delete(self.devices, id)
 }
 
 func (self *LocalMap) Add(id string, d Device) {
