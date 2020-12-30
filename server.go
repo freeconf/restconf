@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -26,6 +27,7 @@ import (
 type Server struct {
 	Web                      *stock.HttpServer
 	CallHome                 *CallHome
+	WebAppHomeDir            string
 	Auth                     secure.Auth
 	Ver                      string
 	NotifyKeepaliveTimeoutMs int
@@ -123,7 +125,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "OPTIONS":
 			return
 		case "GET":
-			http.Redirect(w, r, "restconf/ui/index.html", http.StatusMovedPermanently)
+			http.Redirect(w, r, "app/", http.StatusMovedPermanently)
 			return
 		}
 	}
@@ -137,8 +139,15 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch op1 {
 	case ".ver":
 		w.Write([]byte(self.Ver))
+		return
 	case ".well-known":
 		self.serveStaticRoute(w, r)
+		return
+	case "app":
+		if self.WebAppHomeDir != "" {
+			self.serveWebApp(w, r, self.WebAppHomeDir, p.Path)
+			return
+		}
 	case "restconf":
 		op2, p := shift(p, '/')
 		r.URL = p
@@ -159,11 +168,11 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			handleErr(badAddressErr, w)
 		}
-	default:
-		if self.UnhandledRequestHandler != nil {
-			self.UnhandledRequestHandler(w, r)
-			return
-		}
+		return
+	}
+	if self.UnhandledRequestHandler != nil {
+		self.UnhandledRequestHandler(w, r)
+		return
 	}
 }
 
@@ -189,6 +198,60 @@ func (self *Server) serveData(ctx context.Context, d device.Device, w http.Respo
 	if hndlr, p := self.shiftBrowserHandler(d, w, r.URL); hndlr != nil {
 		r.URL = p
 		hndlr.ServeHTTP(ctx, w, r)
+	}
+}
+
+// SPAEntryPoint is file to serve then serving
+var WebAppEntryPoint = "index.html"
+
+// Serve web app according to SPA conventions where you serve static assets if
+// they exist but if they don't assume, the URL is going to be interpretted
+// in browser as route path.
+func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, dir string, path string) {
+	if strings.HasPrefix(path, WebAppEntryPoint) {
+		// redirect to root path so URL is correct in browser
+		http.Redirect(w, r, "app/", http.StatusMovedPermanently)
+		return
+	}
+	var rdr *os.File
+	useIndexHtml := false
+	if path == "" {
+		useIndexHtml = true
+	} else {
+		var ferr error
+		rdr, ferr = os.Open(filepath.Join(dir, path))
+		if ferr != nil {
+			if os.IsNotExist(ferr) {
+				useIndexHtml = true
+			} else {
+				handleErr(ferr, w)
+				return
+			}
+		} else {
+			stat, _ := rdr.Stat()
+			useIndexHtml = stat.IsDir()
+		}
+	}
+	var ext string
+	if useIndexHtml {
+		var ferr error
+		rdr, ferr = os.Open(filepath.Join(dir, WebAppEntryPoint))
+		if ferr != nil {
+			if os.IsNotExist(ferr) {
+				handleErr(fc.NotFoundError, w)
+			} else {
+				handleErr(ferr, w)
+			}
+			return
+		}
+		ext = ".html"
+	} else {
+		ext = filepath.Ext(path)
+	}
+	ctype := mime.TypeByExtension(ext)
+	w.Header().Set("Content-Type", ctype)
+	if _, err := io.Copy(w, rdr); err != nil {
+		handleErr(err, w)
 	}
 }
 
