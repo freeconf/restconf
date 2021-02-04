@@ -27,7 +27,7 @@ import (
 type Server struct {
 	Web                      *stock.HttpServer
 	CallHome                 *CallHome
-	WebAppHomeDir            string
+	webApps                  []webApp
 	Auth                     secure.Auth
 	Ver                      string
 	NotifyKeepaliveTimeoutMs int
@@ -143,11 +143,6 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case ".well-known":
 		self.serveStaticRoute(w, r)
 		return
-	case "app":
-		if self.WebAppHomeDir != "" {
-			self.serveWebApp(w, r, self.WebAppHomeDir, p.Path)
-			return
-		}
 	case "restconf":
 		op2, p := shift(p, '/')
 		r.URL = p
@@ -168,6 +163,9 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		default:
 			handleErr(badAddressErr, w)
 		}
+		return
+	}
+	if self.handleWebApp(w, r, op1, p.Path) {
 		return
 	}
 	if self.UnhandledRequestHandler != nil {
@@ -201,41 +199,69 @@ func (self *Server) serveData(ctx context.Context, d device.Device, w http.Respo
 	}
 }
 
-// SPAEntryPoint is file to serve then serving
-var WebAppEntryPoint = "index.html"
+type webApp struct {
+	endpoint string
+	homeDir  string
+	homePage string
+}
+
+func (self *Server) RegisterWebApp(homeDir string, homePage string, endpoint string) {
+	self.webApps = append(self.webApps, webApp{
+		endpoint: endpoint,
+		homeDir:  homeDir,
+		homePage: homePage,
+	})
+}
 
 // Serve web app according to SPA conventions where you serve static assets if
 // they exist but if they don't assume, the URL is going to be interpretted
 // in browser as route path.
-func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, dir string, path string) {
-	if strings.HasPrefix(path, WebAppEntryPoint) {
-		// redirect to root path so URL is correct in browser
-		http.Redirect(w, r, "app/", http.StatusMovedPermanently)
-		return
+func (self *Server) handleWebApp(w http.ResponseWriter, r *http.Request, endpoint string, path string) bool {
+	for _, wap := range self.webApps {
+
+		if endpoint == wap.endpoint {
+
+			// if someone type "/app/index.html" then direct them to right spot
+			if strings.HasPrefix(path, wap.homePage) {
+				// redirect to root path so URL is correct in browser
+				http.Redirect(w, r, wap.endpoint, http.StatusMovedPermanently)
+				return true
+			}
+
+			// redirect to root path so URL is correct in browser
+			self.serveWebApp(w, r, wap, path)
+			return true
+		}
 	}
+	return false
+}
+
+func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webApp, path string) {
 	var rdr *os.File
-	useIndexHtml := false
+	useHomePage := false
 	if path == "" {
-		useIndexHtml = true
+		useHomePage = true
 	} else {
 		var ferr error
-		rdr, ferr = os.Open(filepath.Join(dir, path))
+		rdr, ferr = os.Open(filepath.Join(wap.homeDir, path))
 		if ferr != nil {
 			if os.IsNotExist(ferr) {
-				useIndexHtml = true
+				useHomePage = true
 			} else {
 				handleErr(ferr, w)
 				return
 			}
 		} else {
+			// If you do not find a file, assume it's a path that resolves
+			// in client and we send the home page.
 			stat, _ := rdr.Stat()
-			useIndexHtml = stat.IsDir()
+			useHomePage = stat.IsDir()
 		}
 	}
 	var ext string
-	if useIndexHtml {
+	if useHomePage {
 		var ferr error
-		rdr, ferr = os.Open(filepath.Join(dir, WebAppEntryPoint))
+		rdr, ferr = os.Open(filepath.Join(wap.homeDir, wap.homePage))
 		if ferr != nil {
 			if os.IsNotExist(ferr) {
 				handleErr(fc.NotFoundError, w)

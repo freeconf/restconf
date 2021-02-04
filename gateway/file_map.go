@@ -169,6 +169,13 @@ func (self *FileStore) Add(id string, d device.Device) {
 	self.updateListeners(d, id, device.Added)
 }
 
+func (self *FileStore) Remove(id string) {
+	d, _ := self.Device(id)
+	if d != nil {
+		self.updateListeners(d, id, device.Removed)
+	}
+}
+
 func (self *FileStore) exists(deviceId string) bool {
 	_, err := os.Stat(self.deviceDir(deviceId))
 	if err != nil {
