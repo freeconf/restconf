@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"io"
 	"mime"
-	"net"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -56,15 +55,14 @@ func (service *HttpServer) ApplyOptions(options HttpServerOptions) {
 	}
 	if options.Tls != nil {
 		service.Server.TLSConfig = &options.Tls.Config
-		conn, err := net.Listen("tcp", options.Addr)
-		if err != nil {
-			panic(err)
-		}
-		tlsListener := tls.NewListener(conn, &options.Tls.Config)
 		go func() {
-			chkStartErr(service.Server.Serve(tlsListener))
+			// Using "tcp" listener allowed for greater config flexibility for cert
+			// data but disabled HTTP/2
+			chkStartErr(service.Server.ListenAndServeTLS(options.Tls.CertFile, options.Tls.KeyFile))
 		}()
 	} else {
+		// This really is an error, spec says RESTCONF w/o HTTPS should not be allowed.
+		fc.Err.Printf("Without TLS configuration, HTTP2 cannot be enabled and notifications will be severly limited in web browsers")
 		go func() {
 			chkStartErr(service.Server.ListenAndServe())
 		}()
