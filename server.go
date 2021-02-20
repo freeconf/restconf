@@ -44,7 +44,7 @@ type Server struct {
 	Filters []RequestFilter
 }
 
-type RequestFilter func(ctx context.Context, r *http.Request) (context.Context, error)
+type RequestFilter func(ctx context.Context, w http.ResponseWriter, r *http.Request) (context.Context, error)
 
 func NewServer(d *device.Local) *Server {
 	m := &Server{
@@ -108,8 +108,8 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	for _, f := range self.Filters {
 		var err error
-		if ctx, err = f(ctx, r); err != nil {
-			handleErr(badAddressErr, w)
+		if ctx, err = f(ctx, w, r); err != nil {
+			handleErr(err, w)
 			return
 		}
 	}
