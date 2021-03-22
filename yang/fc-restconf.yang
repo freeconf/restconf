@@ -59,6 +59,36 @@ module fc-restconf {
             description "required for secure transport";
             uses stock:tls;
         }
+
+        container metrics {
+            description "Details for connection metrics";
+            config false;
+
+            leaf new {
+                description "Count of all new connections";
+                type int64;
+            }
+
+            leaf active {
+                description "Count of all active connections";
+                type int64;
+            }
+
+            leaf idle {
+                description "Count of all idle connections";
+                type int64;
+            }
+
+            leaf hijacked {
+                description "Count of all hijacked connections";
+                type int64;
+            }
+
+            leaf closed {
+                description "Count of all closed connections";
+                type int64;
+            }
+        }
     }
     
     container callHome {

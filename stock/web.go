@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"mime"
+	"net"
 	"net/http"
 	"path/filepath"
 	"time"
@@ -30,6 +31,7 @@ type HttpServer struct {
 	options HttpServerOptions
 	Server  *http.Server
 	handler http.Handler
+	Metrics WebMetrics
 }
 
 func (service *HttpServer) Options() HttpServerOptions {
@@ -47,6 +49,7 @@ func (service *HttpServer) ApplyOptions(options HttpServerOptions) {
 		ReadTimeout:    time.Duration(options.ReadTimeout) * time.Millisecond,
 		WriteTimeout:   time.Duration(options.WriteTimeout) * time.Millisecond,
 		MaxHeaderBytes: 1 << 20,
+		ConnState:      service.connectionUpdate,
 	}
 	chkStartErr := func(err error) {
 		if err != nil && err != http.ErrServerClosed {
@@ -67,7 +70,29 @@ func (service *HttpServer) ApplyOptions(options HttpServerOptions) {
 			chkStartErr(service.Server.ListenAndServe())
 		}()
 	}
+}
 
+type WebMetrics struct {
+	New      int64
+	Active   int64
+	Idle     int64
+	Hijacked int64
+	Closed   int64
+}
+
+func (service *HttpServer) connectionUpdate(conn net.Conn, state http.ConnState) {
+	switch state {
+	case http.StateNew:
+		service.Metrics.New++
+	case http.StateActive:
+		service.Metrics.Active++
+	case http.StateIdle:
+		service.Metrics.Idle++
+	case http.StateHijacked:
+		service.Metrics.Hijacked++
+	case http.StateClosed:
+		service.Metrics.Closed++
+	}
 }
 
 func (service *HttpServer) Stop() {
@@ -134,6 +159,8 @@ func WebServerNode(service *HttpServer) node.Node {
 				if options.Tls != nil {
 					return TlsNode(options.Tls), nil
 				}
+			case "metrics":
+				return nodeutil.ReflectChild(&service.Metrics), nil
 			}
 			return nil, nil
 		},
