@@ -1,6 +1,7 @@
 package restconf
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -8,8 +9,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
+	"time"
 
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
@@ -23,6 +24,12 @@ func (impl handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestForm(t *testing.T) {
+	if "true" == os.Getenv("TRAVIS") {
+		// no web servers allowed in CI
+		t.Skip()
+		return
+	}
+
 	m, err := parser.LoadModuleFromString(nil, `
 		module test {
 			rpc x {
@@ -38,7 +45,7 @@ func TestForm(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	done := make(chan bool, 2)
+	done := make(chan bool, 1)
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b := node.NewBrowser(m, formDummyNode(t))
 		input, err := requestNode(r)
@@ -46,15 +53,31 @@ func TestForm(t *testing.T) {
 		resp := b.Root().Find("x").Action(input)
 		chkErr(t, resp.LastErr)
 		w.Write([]byte("ok"))
+		t.Log("form received")
 		done <- true
 	}
 	srv := &http.Server{Addr: "127.0.0.1:9999", Handler: handlerImpl(handler)}
-	go func() {
-		srv.ListenAndServe()
-	}()
-	post(t)
+	go srv.ListenAndServe()
+	defer srv.Shutdown(context.TODO())
+	// wait for server to start
+	<-time.After(100 * time.Millisecond)
+
+	var buf bytes.Buffer
+	form := multipart.NewWriter(&buf)
+	dataPart, err := form.CreateFormField("a")
+	chkErr(t, err)
+	fmt.Fprint(dataPart, "hello")
+	filePart, err := form.CreateFormFile("b", "b")
+	chkErr(t, err)
+	fmt.Fprint(filePart, "hello world")
+	chkErr(t, form.Close())
+	req, err := http.NewRequest("POST", "http://127.0.0.1:9999", &buf)
+	chkErr(t, err)
+	req.Header.Set("Content-Type", form.FormDataContentType())
+	_, err = http.DefaultClient.Do(req)
+	// If you get an EOF error here, make sure something else isn't running on port 9999
+	chkErr(t, err)
 	<-done
-	srv.Shutdown(context.TODO())
 }
 
 func chkErr(t *testing.T, err error) {
@@ -65,32 +88,6 @@ func chkErr(t *testing.T, err error) {
 }
 
 func post(t *testing.T) {
-	if "true" == os.Getenv("TRAVIS") {
-		t.Skip()
-		return
-	}
-	rdr, wtr := io.Pipe()
-	wait := make(chan bool, 2)
-	form := multipart.NewWriter(wtr)
-	go func() {
-		req, err := http.NewRequest("POST", "http://127.0.0.1:9999", rdr)
-		chkErr(t, err)
-		req.Header.Set("Content-Type", form.FormDataContentType())
-		_, err = http.DefaultClient.Do(req)
-		chkErr(t, err)
-		wait <- true
-	}()
-	dataPart, err := form.CreateFormField("a")
-	chkErr(t, err)
-	_, err = io.Copy(dataPart, strings.NewReader("hello"))
-	chkErr(t, err)
-	filePart, err := form.CreateFormFile("b", "b")
-	chkErr(t, err)
-	_, err = io.Copy(filePart, strings.NewReader("hello world"))
-	chkErr(t, err)
-	chkErr(t, form.Close())
-	chkErr(t, wtr.Close())
-	<-wait
 }
 
 func formDummyNode(t *testing.T) node.Node {
