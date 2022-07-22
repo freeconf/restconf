@@ -24,7 +24,7 @@ func (impl handlerImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestForm(t *testing.T) {
-	if "true" == os.Getenv("TRAVIS") {
+	if os.Getenv("TRAVIS") == "true" {
 		// no web servers allowed in CI
 		t.Skip()
 		return
@@ -60,7 +60,7 @@ func TestForm(t *testing.T) {
 	go srv.ListenAndServe()
 	defer srv.Shutdown(context.TODO())
 	// wait for server to start
-	<-time.After(100 * time.Millisecond)
+	<-time.After(10 * time.Millisecond)
 
 	var buf bytes.Buffer
 	form := multipart.NewWriter(&buf)
@@ -71,11 +71,11 @@ func TestForm(t *testing.T) {
 	chkErr(t, err)
 	fmt.Fprint(filePart, "hello world")
 	chkErr(t, form.Close())
-	req, err := http.NewRequest("POST", "http://127.0.0.1:9999", &buf)
+	req, err := http.NewRequest("POST", "http://"+srv.Addr, &buf)
 	chkErr(t, err)
 	req.Header.Set("Content-Type", form.FormDataContentType())
 	_, err = http.DefaultClient.Do(req)
-	// If you get an EOF error here, make sure something else isn't running on port 9999
+	// If you get an error here, make sure something else isn't running on same port
 	chkErr(t, err)
 	<-done
 }
@@ -85,9 +85,6 @@ func chkErr(t *testing.T, err error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func post(t *testing.T) {
 }
 
 func formDummyNode(t *testing.T) node.Node {
