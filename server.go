@@ -125,8 +125,10 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "OPTIONS":
 			return
 		case "GET":
-			http.Redirect(w, r, "app/", http.StatusMovedPermanently)
-			return
+			if len(self.webApps) > 0 {
+				http.Redirect(w, r, self.webApps[0].endpoint, http.StatusMovedPermanently)
+				return
+			}
 		}
 	}
 
