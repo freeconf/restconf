@@ -4,6 +4,8 @@ github.com/freeconf/yang v0.0.0-20201230174447-5aac69f7ec5d h1:As/06hPwPaGOpTLpL
 github.com/freeconf/yang v0.0.0-20201230174447-5aac69f7ec5d/go.mod h1:oYllgZJESUAQ10c/p3oc2OZnYTXFjDierqKP/OaiJyk=
 github.com/freeconf/yang v0.0.0-20220720120251-af68a4c1add5 h1:KtqRWi5jYtMVM7Uybo+QoKEioj9x3FCUXFnEwupjEYY=
 github.com/freeconf/yang v0.0.0-20220720120251-af68a4c1add5/go.mod h1:oYllgZJESUAQ10c/p3oc2OZnYTXFjDierqKP/OaiJyk=
+github.com/freeconf/yang v0.0.0-20221018125927-13e9267b25b6 h1:s9ntun+SURc2z1Kdg6Kw72pLJA4M8A+eV4LHEUpKGfc=
+github.com/freeconf/yang v0.0.0-20221018125927-13e9267b25b6/go.mod h1:oYllgZJESUAQ10c/p3oc2OZnYTXFjDierqKP/OaiJyk=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee/go.mod h1:QqPTAvyqsEbceGzBzNggFXnrqF1CaUcvgkdR5Ot7KZg=
