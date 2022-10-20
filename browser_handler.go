@@ -116,7 +116,8 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 			}
 		case "PUT":
 			// CRUD - Update
-			input, err := requestNode(r)
+			var input node.Node
+			input, err = requestNode(r)
 			if err != nil {
 				handleErr(err, w)
 				return
