@@ -58,36 +58,33 @@ func deviceChangeNode(id string, d Device, c Change) node.Node {
 
 func deviceRecordListNode(devices Map) node.Node {
 	return &nodeutil.Basic{
-		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
+		OnNextItem: func(r node.ListRequest) nodeutil.BasicNextItem {
 			var d Device
 			var id string
-			key := r.Key
 			var err error
-			if key != nil {
-				id = key[0].String()
-				d, err = devices.Device(id)
-				if err != nil {
-					return nil, nil, err
-				}
-			} else if r.Row < devices.Len() {
-				id = devices.NthDeviceId(r.Row)
-				d, err = devices.Device(id)
-				if err != nil {
-					return nil, nil, err
-				} else if d != nil {
-					key = []val.Value{val.String(id)}
-				}
+			return nodeutil.BasicNextItem{
+				GetByKey: func() error {
+					id = r.Key[0].String()
+					d, err = devices.Device(id)
+					return err
+				},
+				GetByRow: func() ([]val.Value, error) {
+					if r.Row >= devices.Len() {
+						return nil, nil
+					}
+					id = devices.NthDeviceId(r.Row)
+					d, err = devices.Device(id)
+					return []val.Value{val.String(id)}, err
+				},
+				Node: func() (node.Node, error) {
+					if d != nil {
+						return deviceNode(id, d), nil
+					}
+					return nil, nil
+				},
 			}
-			if d != nil {
-				return deviceNode(id, d), key, nil
-			}
-			return nil, nil, nil
 		},
 	}
-}
-
-func deviceHndNode(hnd *DeviceHnd) node.Node {
-	return nodeutil.ReflectChild(hnd)
 }
 
 func deviceNode(id string, d Device) node.Node {
@@ -112,23 +109,29 @@ func deviceNode(id string, d Device) node.Node {
 func deviceModuleList(mods map[string]*meta.Module) node.Node {
 	index := node.NewIndex(mods)
 	return &nodeutil.Basic{
-		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
-			key := r.Key
+		OnNextItem: func(r node.ListRequest) nodeutil.BasicNextItem {
 			var m *meta.Module
-			if r.Key != nil {
-				m = mods[r.Key[0].String()]
-			} else {
-				if v := index.NextKey(r.Row); v != node.NO_VALUE {
-					module := v.String()
-					if m = mods[module]; m != nil {
-						key = []val.Value{val.String(m.Ident())}
+			return nodeutil.BasicNextItem{
+				GetByKey: func() error {
+					m = mods[r.Key[0].String()]
+					return nil
+				},
+				GetByRow: func() ([]val.Value, error) {
+					if v := index.NextKey(r.Row); v != node.NO_VALUE {
+						module := v.String()
+						if m = mods[module]; m != nil {
+							return []val.Value{val.String(m.Ident())}, nil
+						}
 					}
-				}
+					return nil, nil
+				},
+				Node: func() (node.Node, error) {
+					if m != nil {
+						return deviceModuleNode(m), nil
+					}
+					return nil, nil
+				},
 			}
-			if m != nil {
-				return deviceModuleNode(m), key, nil
-			}
-			return nil, nil, nil
 		},
 	}
 }

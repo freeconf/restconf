@@ -54,25 +54,32 @@ func registrationsNode(registrar Registrar) node.Node {
 	index := node.NewIndex(registrar.(*LocalRegistrar).regs)
 
 	return &nodeutil.Basic{
-		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
+		OnNextItem: func(r node.ListRequest) nodeutil.BasicNextItem {
 			var reg Registration
-			found := false
-			var id string
-			key := r.Key
-			if key != nil {
-				id = key[0].String()
-				reg, found = registrar.LookupRegistration(id)
-			} else if r.Row < registrar.RegistrationCount() {
-				if v := index.NextKey(r.Row); v != node.NO_VALUE {
-					id = v.String()
-					reg, found = registrar.LookupRegistration(id)
-					key = []val.Value{val.String(reg.DeviceId)}
-				}
+			var found bool
+			return nodeutil.BasicNextItem{
+				GetByKey: func() error {
+					reg, found = registrar.LookupRegistration(r.Key[0].String())
+					return nil
+				},
+				GetByRow: func() ([]val.Value, error) {
+					if r.Row < registrar.RegistrationCount() {
+						if v := index.NextKey(r.Row); v != node.NO_VALUE {
+							id := v.String()
+							reg, found = registrar.LookupRegistration(id)
+							key := []val.Value{val.String(reg.DeviceId)}
+							return key, nil
+						}
+					}
+					return nil, nil
+				},
+				Node: func() (node.Node, error) {
+					if found {
+						return nodeutil.ReflectChild(&reg), nil
+					}
+					return nil, nil
+				},
 			}
-			if found {
-				return nodeutil.ReflectChild(&reg), key, nil
-			}
-			return nil, nil, nil
 		},
 	}
 }

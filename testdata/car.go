@@ -265,31 +265,29 @@ func Manage(c *Car) node.Node {
 func tiresNode(tires []*tire) node.Node {
 	return &nodeutil.Basic{
 		// Handling lists are
-		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
+		OnNextItem: func(r node.ListRequest) nodeutil.BasicNextItem {
 			var t *tire
-			key := r.Key
-			var pos int
-
-			// request for specific item in list
-			if key != nil {
-				pos = key[0].Value().(int)
-				if pos >= len(tires) {
-					return nil, nil, nil
-				}
+			return nodeutil.BasicNextItem{
+				GetByKey: func() error {
+					pos := r.Key[0].Value().(int)
+					t = tires[pos]
+					return nil
+				},
+				GetByRow: func() ([]val.Value, error) {
+					// request for nth item in list
+					if r.Row < len(tires) {
+						t = tires[r.Row]
+						return []val.Value{val.Int32(r.Row)}, nil
+					}
+					return nil, nil
+				},
+				Node: func() (node.Node, error) {
+					if t != nil {
+						return tireNode(t), nil
+					}
+					return nil, nil
+				},
 			}
-			if key != nil {
-				t = tires[pos]
-			} else {
-				// request for nth item in list
-				if r.Row < len(tires) {
-					t = tires[r.Row]
-					key = []val.Value{val.Int32(r.Row)}
-				}
-			}
-			if t != nil {
-				return tireNode(t), key, nil
-			}
-			return nil, nil, nil
 		},
 	}
 }
