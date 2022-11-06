@@ -1,5 +1,7 @@
 github.com/freeconf/yang v0.0.0-20221029114400-35b9179da84f h1:A7LV64xAr8pp/mB/NENmjr6RDtRcCrnqaU0X/GTsjW8=
 github.com/freeconf/yang v0.0.0-20221029114400-35b9179da84f/go.mod h1:oYllgZJESUAQ10c/p3oc2OZnYTXFjDierqKP/OaiJyk=
+github.com/freeconf/yang v0.0.0-20221106220303-aafd80d2e62e h1:vx0WuBdPEG9ymPsnu57bVVi+1KjtucKI3meJC6qdI2A=
+github.com/freeconf/yang v0.0.0-20221106220303-aafd80d2e62e/go.mod h1:oYllgZJESUAQ10c/p3oc2OZnYTXFjDierqKP/OaiJyk=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
 golang.org/x/mod v0.1.1-0.20191105210325-c90efee705ee/go.mod h1:QqPTAvyqsEbceGzBzNggFXnrqF1CaUcvgkdR5Ot7KZg=

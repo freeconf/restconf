@@ -54,6 +54,11 @@ func (self *clientNode) node() node.Node {
 			}
 			return n, nil
 		}
+		if r.Delete {
+			target := node.NewContainerPath(r.Selection.Path, r.Meta)
+			_, err := self.request("DELETE", target, noSelection)
+			return nil, err
+		}
 		if self.edit != nil {
 			return self.edit.Child(r)
 		}
@@ -63,10 +68,6 @@ func (self *clientNode) node() node.Node {
 			}
 		}
 		return self.read.Child(r)
-	}
-	n.OnDelete = func(r node.NodeRequest) error {
-		_, err := self.request("DELETE", r.Selection.Path, noSelection)
-		return err
 	}
 	n.OnNext = func(r node.ListRequest) (node.Node, []val.Value, error) {
 		if r.IsNavigation() {
@@ -123,6 +124,9 @@ func (self *clientNode) node() node.Node {
 	n.OnEndEdit = func(r node.NodeRequest) error {
 		// send request
 		if !r.EditRoot {
+			return nil
+		}
+		if r.Delete {
 			return nil
 		}
 		_, err := self.request(self.method, r.Selection.Path, r.Selection.Split(self.changes))

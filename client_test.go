@@ -53,8 +53,10 @@ func TestClient(t *testing.T) {
 	fc.AssertEqual(t, "OPTIONS path=x/y", support.log())
 
 	// delete
-	support.reset().node().Delete(b.nr(s))
-	fc.AssertEqual(t, "DELETE path=x", support.log())
+	del := b.cr(s, "y")
+	del.Delete = true
+	support.reset().node().Child(del)
+	fc.AssertEqual(t, "DELETE path=x/y", support.log())
 
 	// notify
 	notifyDef := fmt.Sprintf(`notification x { %s }`, test.def)
