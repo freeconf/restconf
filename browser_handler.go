@@ -15,8 +15,15 @@ import (
 	"github.com/freeconf/yang/nodeutil"
 )
 
+const (
+	allowOperationsAny = iota
+	allowOperationsOnly
+	allowOperationsNone
+)
+
 type browserHandler struct {
-	browser *node.Browser
+	browser             *node.Browser
+	allowOperationsFlag int
 }
 
 var subscribeCount int
@@ -40,6 +47,17 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 		}
 		if handleErr(err, w) {
 			return
+		}
+		if self.allowOperationsFlag != allowOperationsAny {
+			isOperation := r.Method == "POST" && meta.IsAction(sel.Meta()) && sel.Path.Len() == 2
+			if self.allowOperationsFlag == allowOperationsOnly && !isOperation {
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
+			if self.allowOperationsFlag == allowOperationsNone && isOperation {
+				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+				return
+			}
 		}
 		switch r.Method {
 		case "DELETE":
