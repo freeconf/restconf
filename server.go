@@ -42,6 +42,10 @@ type Server struct {
 	// Give app change to read custom header data and stuff into context so info can get
 	// to app layer
 	Filters []RequestFilter
+
+	// allow rpc to serve under /restconf/data/{module:}/{rpc} which while intuative and
+	// original design, it is not in compliance w/RESTCONF spec
+	AllowLegacyCompliance bool
 }
 
 type RequestFilter func(ctx context.Context, w http.ResponseWriter, r *http.Request) (context.Context, error)
@@ -162,6 +166,8 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			} else {
 				self.serveStreamSource(r, w, device.SchemaSource(), r.URL.Path)
 			}
+		case "operations":
+			self.serveOperations(ctx, device, w, r)
 		default:
 			handleErr(badAddressErr, r, w)
 		}
@@ -194,9 +200,20 @@ func (self *Server) serveSchema(ctx context.Context, w http.ResponseWriter, r *h
 	hndlr.ServeHTTP(ctx, w, r)
 }
 
+func (self *Server) serveOperations(ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request) {
+	if hndlr, p := self.shiftBrowserHandler(d, w, r.URL); hndlr != nil {
+		r.URL = p
+		hndlr.allowOperationsFlag = allowOperationsOnly
+		hndlr.ServeHTTP(ctx, w, r)
+	}
+}
+
 func (self *Server) serveData(ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request) {
 	if hndlr, p := self.shiftBrowserHandler(r, d, w, r.URL); hndlr != nil {
 		r.URL = p
+		if !self.AllowLegacyCompliance {
+			hndlr.allowOperationsFlag = allowOperationsNone
+		}
 		hndlr.ServeHTTP(ctx, w, r)
 	}
 }
