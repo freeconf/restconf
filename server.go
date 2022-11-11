@@ -52,8 +52,9 @@ type RequestFilter func(ctx context.Context, w http.ResponseWriter, r *http.Requ
 
 func NewServer(d *device.Local) *Server {
 	m := &Server{
-		notifiers: list.New(),
-		ypath:     d.SchemaSource(),
+		notifiers:             list.New(),
+		ypath:                 d.SchemaSource(),
+		AllowLegacyCompliance: Compliance.ServeOperationsUnderData,
 	}
 	m.ServeDevice(d)
 

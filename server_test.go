@@ -61,10 +61,15 @@ func TestServer(t *testing.T) {
 		t.Errorf("expected 404 got %d", r.StatusCode)
 	}
 	contentType := "application/json"
+
+	r, _ = client.Post(addr+"/restconf/operations/car:rotateTires", contentType, nil)
+	fc.AssertEqual(t, 200, r.StatusCode)
+
 	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", contentType, nil)
 	fc.AssertEqual(t, 400, r.StatusCode)
 
-	r, _ = client.Post(addr+"/restconf/operations/car:rotateTires", contentType, nil)
+	s.AllowLegacyCompliance = true
+	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", contentType, nil)
 	fc.AssertEqual(t, 200, r.StatusCode)
 
 	s.Close()
