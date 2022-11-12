@@ -6,6 +6,11 @@ module fc-stocklib {
 
     grouping tls {
 
+        leaf customClientCertValidation {
+            description "Enables client cert requests and let's users validate it";
+            type boolean;
+        }
+
         leaf serverName {
             description "Name identified in certificate for this server";
             type string;

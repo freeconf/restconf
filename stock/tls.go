@@ -22,6 +22,10 @@ func TlsNode(config *Tls) node.Node {
 		Base: nodeutil.ReflectChild(&config.Config),
 		OnChild: func(p node.Node, r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
+			case "customClientCertValidation":
+				if r.New {
+					config.Config.ClientAuth = tls.RequireAnyClientCert
+                }
 			case "ca":
 				if r.New {
 					config.Config.RootCAs = x509.NewCertPool()
