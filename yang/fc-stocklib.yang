@@ -4,13 +4,32 @@ module fc-stocklib {
     description "management of various objects on C2 library";
 	revision 0000-00-00;
 
+    typedef clientAuthType {
+        type enumeration {
+            enum NoClientCert {
+                value 0;
+            }
+            enum RequestClientCert {
+                value 1;
+            }
+            enum RequireAnyClientCert {
+                value 2;
+            }
+            enum VerifyClientCertIfGiven {
+                value 3;
+            }
+            enum RequireAndVerifyClientCert {
+                value 4;
+            }
+        }
+    }
+    
     grouping tls {
 
-        leaf customClientCertValidation {
-            description "Enables client cert requests and let's users validate it";
-            type boolean;
+        leaf clientAuth {
+            description "Client Cert Authentication";
+            type clientAuthType;
         }
-
         leaf serverName {
             description "Name identified in certificate for this server";
             type string;
