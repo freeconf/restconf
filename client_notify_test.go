@@ -59,8 +59,8 @@ func TestClientNotif(t *testing.T) {
 	}
 	send <- "original session"
 	recv := make(chan string, 1)
-	sub, err := bClient.Root().Find("y").Notifications(func(sel node.Selection) {
-		actual, err := nodeutil.WriteJSON(sel)
+	sub, err := bClient.Root().Find("y").Notifications(func(msg node.Notification) {
+		actual, err := nodeutil.WriteJSON(msg.Event)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -70,7 +70,7 @@ func TestClientNotif(t *testing.T) {
 		t.Fatal(err)
 	}
 	msg := <-recv
-	if msg != `{"z":"original session"}` {
+	if msg != `{"x:z":"original session"}` {
 		t.Error(msg)
 	}
 	sub()

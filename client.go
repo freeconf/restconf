@@ -163,7 +163,7 @@ func (self *client) module(module string) (*meta.Module, error) {
 }
 
 func (self *client) clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error) {
-	mod := meta.RootModule(p.Meta())
+	mod := meta.RootModule(p.Meta)
 	fullUrl := fmt.Sprint(self.address.Data, mod.Ident(), ":", p.StringNoModule())
 	req, err := http.NewRequest("GET", fullUrl, nil)
 	if err != nil {
@@ -222,7 +222,7 @@ func (self httpStream) OpenStream(name string, ext string) (io.Reader, error) {
 func (self *client) clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error) {
 	var req *http.Request
 	var err error
-	mod := meta.RootModule(p.Meta())
+	mod := meta.RootModule(p.Meta)
 	fullUrl := fmt.Sprint(self.address.Data, mod.Ident(), ":", p.StringNoModule())
 	if params != "" {
 		fullUrl = fmt.Sprint(fullUrl, "?", params)
