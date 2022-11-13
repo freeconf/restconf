@@ -55,7 +55,7 @@ func (self *clientNode) node() node.Node {
 			return n, nil
 		}
 		if r.Delete {
-			target := node.NewContainerPath(r.Selection.Path, r.Meta)
+			target := &node.Path{Parent: r.Selection.Path, Meta: r.Meta}
 			_, err := self.request("DELETE", target, noSelection)
 			return nil, err
 		}

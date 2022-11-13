@@ -171,8 +171,8 @@ notification identified {}
 
 		t.Log(test.desc + " notify")
 		var notifyErr error
-		s.Find("identified").Notifications(func(m node.Selection) {
-			notifyErr = m.LastErr
+		s.Find("identified").Notifications(func(n node.Notification) {
+			notifyErr = n.Event.LastErr
 		})
 		fc.AssertEqual(t, test.notify, err2auth(notifyErr))
 	}

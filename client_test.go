@@ -65,7 +65,7 @@ func TestClient(t *testing.T) {
 
 	// action
 	support.reset().node().Action(b.ar(b.sel(b.action(`action x { input { } }`), ""), s))
-	fc.AssertEqual(t, `POST path=x payload={"y":{},"z":"hi"}`, support.log())
+	fc.AssertEqual(t, `POST path=x payload={"m:y":{},"m:z":"hi"}`, support.log())
 
 	// edit
 	n := support.reset().node()
@@ -80,7 +80,7 @@ func TestClient(t *testing.T) {
 	fc.AssertEqual(t, "", support.log())
 
 	n.EndEdit(nr)
-	fc.AssertEqual(t, `PUT path=x payload={"y":{},"z":"hi"}`, support.log())
+	fc.AssertEqual(t, `PUT path=x payload={"m:y":{},"m:z":"hi"}`, support.log())
 }
 
 type testDriverSupport struct {
@@ -99,9 +99,9 @@ func (self *testDriverSupport) reset() *clientNode {
 	return &clientNode{support: self}
 }
 
-func (self *testDriverSupport) stream(payload node.Selection) {
+func (self *testDriverSupport) stream(payload node.Notification) {
 	var err error
-	if self.subPayloads, err = nodeutil.WriteJSON(payload); err != nil {
+	if self.subPayloads, err = nodeutil.WriteJSON(payload.Event); err != nil {
 		panic(err)
 	}
 }
@@ -139,7 +139,7 @@ func (self requestBuilder) sel(d meta.Definition, payloadJson string) node.Selec
 	return node.Selection{
 		Constraints: &node.Constraints{},
 		Node:        self.dn(payloadJson),
-		Path:        node.NewRootPath(d),
+		Path:        &node.Path{Meta: d},
 	}
 }
 

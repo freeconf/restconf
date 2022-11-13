@@ -58,8 +58,8 @@ func (self *MapClient) OnModuleUpdate(module string, l ChangeListener) nodeutil.
 }
 
 func (self *MapClient) onUpdate(path string, l ChangeListener) nodeutil.Subscription {
-	closer, err := self.browser.Root().Find(path).Notifications(func(msg node.Selection) {
-		id, err := msg.GetValue("deviceId")
+	closer, err := self.browser.Root().Find(path).Notifications(func(n node.Notification) {
+		id, err := n.Event.GetValue("deviceId")
 		if err != nil {
 			fc.Err.Print(err)
 			return
