@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"io/ioutil"
@@ -68,15 +69,15 @@ type testDriverFlowSupport struct {
 	post map[string]string
 }
 
-func (self *testDriverFlowSupport) clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error) {
+func (self *testDriverFlowSupport) clientDo(method string, params string, p *node.Path, payload io.Reader) (io.ReadCloser, error) {
 	path := p.StringNoModule()
 	switch method {
 	case "GET":
 		in, found := self.get[path]
 		if !found {
-			return node.ErrorNode{Err: fmt.Errorf("no response for %s", path)}, nil
+			return nil, fmt.Errorf("no response for %s", path)
 		}
-		return nodeutil.ReadJSON(in), nil
+		return io.NopCloser(strings.NewReader(in)), nil
 	case "PUT":
 		body, _ := ioutil.ReadAll(payload)
 		self.put = map[string]string{
@@ -91,6 +92,6 @@ func (self *testDriverFlowSupport) clientDo(method string, params string, p *nod
 	return nil, nil
 }
 
-func (self *testDriverFlowSupport) clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error) {
+func (self *testDriverFlowSupport) clientStream(params string, p *node.Path, ctx context.Context) (<-chan streamEvent, error) {
 	panic("not implemented")
 }

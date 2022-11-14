@@ -65,7 +65,7 @@ func TestClient(t *testing.T) {
 
 	// action
 	support.reset().node().Action(b.ar(b.sel(b.action(`action x { input { } }`), ""), s))
-	fc.AssertEqual(t, `POST path=x payload={"m:y":{},"m:z":"hi"}`, support.log())
+	fc.AssertEqual(t, `POST path=x payload={"m:input":{"m:y":{},"m:z":"hi"}}`, support.log())
 
 	// edit
 	n := support.reset().node()
@@ -112,7 +112,7 @@ func (self *testDriverSupport) log() string {
 	return s
 }
 
-func (self *testDriverSupport) clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error) {
+func (self *testDriverSupport) clientDo(method string, params string, p *node.Path, payload io.Reader) (io.ReadCloser, error) {
 	self._log += fmt.Sprintf("%s path=%s", method, p.String())
 	if params != "" {
 		self._log += " params=" + params
@@ -124,10 +124,10 @@ func (self *testDriverSupport) clientDo(method string, params string, p *node.Pa
 			self._log += fmt.Sprintf(" payload=%s", string(payloadBytes))
 		}
 	}
-	return self.doResponse, nil
+	return io.NopCloser(bytes.NewReader([]byte{})), nil
 }
 
-func (self *testDriverSupport) clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error) {
+func (self *testDriverSupport) clientStream(params string, p *node.Path, ctx context.Context) (<-chan streamEvent, error) {
 	self._subs++
 	return nil, nil
 }

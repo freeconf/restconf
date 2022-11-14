@@ -170,7 +170,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "operations":
 			self.serveOperations(ctx, device, w, r)
 		default:
-			handleErr(badAddressErr, w)
+			handleErr(errBadAddress, w)
 		}
 		return
 	}

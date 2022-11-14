@@ -20,7 +20,9 @@ var Compliance = ComplianceOptions{}
 //
 // or you can just set individual settings on restconf.Compliance global variable
 var LegacyCompliance = ComplianceOptions{
-	ServeOperationsUnderData: true,
+	ServeOperationsUnderData:   true,
+	DisableNotificationWrapper: true,
+	DisableActionWrapper:       true,
 }
 
 // ComplianceOptions hold all the compliance settings
@@ -29,4 +31,13 @@ type ComplianceOptions struct {
 	// allow rpc to serve under /restconf/data/{module:}/{rpc} which while intuative and
 	// original design, it is not in compliance w/RESTCONF spec
 	ServeOperationsUnderData bool
+
+	// IETF notification messages with extra data including
+	// event time and ietf-restconf:notfication container
+	// https://datatracker.ietf.org/doc/html/rfc8040#section-6.4
+	DisableNotificationWrapper bool
+
+	// IETF rpc/action inputs and outputs are wrapped with extra container
+	// https://datatracker.ietf.org/doc/html/rfc8040#section-6.
+	DisableActionWrapper bool
 }

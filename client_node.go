@@ -3,11 +3,14 @@ package restconf
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"io"
 
 	"github.com/freeconf/yang/fc"
+	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/val"
@@ -28,8 +31,8 @@ type clientNode struct {
 // testing but also because a lot of what driver does is potentially universal to proxying
 // for other protocols and might allow reusablity when other protocols are added
 type clientSupport interface {
-	clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error)
-	clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error)
+	clientDo(method string, params string, p *node.Path, payload io.Reader) (io.ReadCloser, error)
+	clientStream(params string, p *node.Path, ctx context.Context) (<-chan streamEvent, error)
 }
 
 var noSelection node.Selection
@@ -109,7 +112,7 @@ func (self *clientNode) node() node.Node {
 		}
 		go func() {
 			for n := range events {
-				r.Send(n)
+				r.SendWhen(n.Node, n.Timestamp)
 			}
 		}()
 		closer := func() error {
@@ -119,7 +122,7 @@ func (self *clientNode) node() node.Node {
 		return closer, nil
 	}
 	n.OnAction = func(r node.ActionRequest) (node.Node, error) {
-		return self.request("POST", r.Selection.Path, r.Input)
+		return self.requestAction(r.Selection.Path, r.Input)
 	}
 	n.OnEndEdit = func(r node.NodeRequest) error {
 		// send request
@@ -178,7 +181,12 @@ func (self *clientNode) validNavigation(target *node.Path) (bool, error) {
 }
 
 func (self *clientNode) get(p *node.Path, params string) (node.Node, error) {
-	return self.support.clientDo("GET", params, p, nil)
+	resp, err := self.support.clientDo("GET", params, p, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Close()
+	return nodeutil.ReadJSONIO(resp), nil
 }
 
 func (self *clientNode) request(method string, p *node.Path, in node.Selection) (node.Node, error) {
@@ -189,5 +197,55 @@ func (self *clientNode) request(method string, p *node.Path, in node.Selection) 
 			return nil, err
 		}
 	}
-	return self.support.clientDo(method, "", p, &payload)
+	resp, err := self.support.clientDo(method, "", p, &payload)
+	if err != nil || resp == nil {
+		return nil, err
+	}
+	defer resp.Close()
+	return nodeutil.ReadJSONIO(resp), nil
+}
+
+func (self *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node, error) {
+	var payload bytes.Buffer
+	if !in.IsNil() {
+		if !Compliance.DisableActionWrapper {
+			// IETF formated input
+			// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.1
+
+			fmt.Fprintf(&payload, `{"%s:input":`, meta.OriginalModule(p.Meta).Ident())
+		}
+
+		js := &nodeutil.JSONWtr{Out: &payload}
+		if err := in.InsertInto(js.Node()).LastErr; err != nil {
+			return nil, err
+		}
+		if !Compliance.DisableActionWrapper {
+			fmt.Fprintf(&payload, "}")
+		}
+	}
+	resp, err := self.support.clientDo("POST", "", p, &payload)
+	if err != nil {
+		return nil, err
+	}
+	if resp != nil {
+		if !Compliance.DisableActionWrapper {
+			// IETF formated input
+			// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
+			var vals map[string]interface{}
+			d := json.NewDecoder(resp)
+			err := d.Decode(&vals)
+			if err != nil {
+				return nil, err
+			}
+			a := p.Meta.(*meta.Rpc)
+			key := meta.OriginalModule(a).Ident() + ":output"
+			respVals, found := vals[key].(map[string]interface{})
+			if !found {
+				return nil, fmt.Errorf("'%s' missing in output wrapper", key)
+			}
+			return nodeutil.ReadJSONValues(respVals), nil
+		}
+		return nodeutil.ReadJSONIO(resp), nil
+	}
+	return nil, nil
 }

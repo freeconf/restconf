@@ -2,7 +2,9 @@ package restconf
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 
@@ -27,6 +29,8 @@ type browserHandler struct {
 }
 
 var subscribeCount int
+
+const eventTimeFormat = "2006-01-02T15:04:05-07:00"
 
 func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	var err error
@@ -102,6 +106,10 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 					// According to SSE Spec, each event needs following format:
 					// data: {payload}\n\n
 					fmt.Fprint(&buf, "data: ")
+					if !Compliance.DisableNotificationWrapper {
+						etime := n.EventTime.Format(eventTimeFormat)
+						fmt.Fprintf(&buf, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
+					}
 					jout := &nodeutil.JSONWtr{Out: &buf}
 
 					err := n.Event.InsertInto(jout.Node()).LastErr
@@ -109,7 +117,9 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 						errOnSend <- err
 						return
 					}
-
+					if !Compliance.DisableNotificationWrapper {
+						fmt.Fprint(&buf, "}}")
+					}
 					fmt.Fprint(&buf, "\n\n")
 					w.Write(buf.Bytes())
 					flusher.Flush()
@@ -147,15 +157,17 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 				a := sel.Meta().(*meta.Rpc)
 				var input node.Node
 				if a.Input() != nil {
-					if input, err = requestNode(r); err != nil {
+					if input, err = readInput(r, a); err != nil {
 						handleErr(err, w)
 						return
 					}
 				}
 				if outputSel := sel.Action(input); !outputSel.IsNil() && a.Output() != nil {
 					w.Header().Set("Content-Type", mime.TypeByExtension(".json"))
-					jout := &nodeutil.JSONWtr{Out: w}
-					err = outputSel.InsertInto(jout.Node()).LastErr
+					if err = sendOutput(w, outputSel, a); err != nil {
+						handleErr(err, w)
+						return
+					}
 				} else {
 					err = outputSel.LastErr
 				}
@@ -178,9 +190,55 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 	}
 }
 
+func sendOutput(out io.Writer, output node.Selection, a *meta.Rpc) error {
+	if !Compliance.DisableActionWrapper {
+		// IETF formated output
+		// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
+		mod := meta.OriginalModule(a).Ident()
+		if _, err := fmt.Fprintf(out, `{"%s:output":`, mod); err != nil {
+			return err
+		}
+	}
+	jout := &nodeutil.JSONWtr{Out: out}
+	err := output.InsertInto(jout.Node()).LastErr
+
+	if !Compliance.DisableActionWrapper {
+		if _, err := fmt.Fprintf(out, "}"); err != nil {
+			return err
+		}
+	}
+	return err
+}
+
+func readInput(r *http.Request, a *meta.Rpc) (node.Node, error) {
+	// not part of spec, custom feature to allow for form uploads
+	if isMultiPartForm(r.Header) {
+		return formNode(r)
+	} else if Compliance.DisableActionWrapper {
+		return nodeutil.ReadJSONIO(r.Body), nil
+	}
+
+	// IETF formated input
+	// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.1
+	var vals map[string]interface{}
+	d := json.NewDecoder(r.Body)
+	err := d.Decode(&vals)
+	if err != nil {
+		return nil, err
+	}
+	key := meta.OriginalModule(a).Ident() + ":input"
+	payload, found := vals[key].(map[string]interface{})
+	if !found {
+		return nil, fmt.Errorf("'%s' missing in input wrapper", key)
+	}
+	return nodeutil.ReadJSONValues(payload), nil
+}
+
 func requestNode(r *http.Request) (node.Node, error) {
+	// not part of spec, custom feature to allow for form uploads
 	if isMultiPartForm(r.Header) {
 		return formNode(r)
 	}
+
 	return nodeutil.ReadJSONIO(r.Body), nil
 }
