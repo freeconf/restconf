@@ -1,5 +1,7 @@
 # ![FreeCONF](https://s3.amazonaws.com/freeconf-static/freeconf-no-wrench.svg)
 
+For more information about this project, [see wiki](https://github.com/freeconf/restconf/wiki).
+
 # RESTCONF client and server library
 
 This is a library for adding support for configuration, metrics, operations and events to any service written in the Go programming language.  It supports [IETF RESTCONF RFC8040](https://tools.ietf.org/html/rfc8040) protocol so it can interoperate with other libraries and systems. Even if you do not currently use these standards, this library gives you a powerful management system based on decades of engineering.
@@ -186,3 +188,13 @@ You will see a warning about HTTP2, but you can ignore that.  Once you install a
 
 ## Resources
 * [Wiki](https://github.com/freeconf/restconf/wiki)
+* [Discussions](https://github.com/freeconf/restconf/discussions)
+* [Issues](https://github.com/freeconf/restconf/issues)
+
+## RFCs
+
+If you don't see an RFC here, open a discussion to see if there is interest or existing implementations.
+
+* [RFC 8040](https://datatracker.ietf.org/doc/html/rfc8040) - RESTCONF (sans XML)
+* [RFC 8525](https://datatracker.ietf.org/doc/html/rfc8525) - YANG Library
+* [RFCs from underlying yang library](https://github.com/freeconf/yang#rfcs)

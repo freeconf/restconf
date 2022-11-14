@@ -50,9 +50,22 @@ func loadModuleNode(mods map[string]*meta.Module, resolver ResolveModule, hnd *M
 	}
 }
 
+const (
+	ConformanceTypeImplement = "implement"
+	ConformanceTypeImport    = "import"
+)
+
+type DeviationHnd struct {
+	Name     string
+	Revision string
+}
+
 type ModuleHnd struct {
-	Name      string
-	Schema    string
-	Revision  string
-	Namespace string
+	Name            string
+	Schema          string
+	Revision        string
+	Namespace       string
+	Feature         []string
+	ConformanceType string
+	Deviation       []*DeviationHnd
 }

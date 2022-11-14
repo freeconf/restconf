@@ -66,6 +66,12 @@ func NewServer(d *device.Local) *Server {
 	if err := d.Add("ietf-yang-library", device.LocalDeviceYangLibNode(m.ModuleAddress, d)); err != nil {
 		panic(err)
 	}
+	if err := d.Add("ietf-restconf", IetfRestconfLib()); err != nil {
+		panic(err)
+	}
+	if err := d.Add("ietf-restconf-monitoring", IetfRestconfLib()); err != nil {
+		panic(err)
+	}
 	return m
 }
 
