@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
@@ -110,7 +112,7 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 	return c, nil
 }
 
-var badAddressErr = errors.New("Expected format: http://server/restconf[=device]/operation/module:path")
+var errBadAddress = errors.New("expected format: http://server/restconf[=device]/operation/module:path")
 
 type client struct {
 	address    Address
@@ -162,7 +164,12 @@ func (self *client) module(module string) (*meta.Module, error) {
 	return m, nil
 }
 
-func (self *client) clientStream(params string, p *node.Path, ctx context.Context) (<-chan node.Node, error) {
+type streamEvent struct {
+	Timestamp time.Time
+	Node      node.Node
+}
+
+func (self *client) clientStream(params string, p *node.Path, ctx context.Context) (<-chan streamEvent, error) {
 	mod := meta.RootModule(p.Meta)
 	fullUrl := fmt.Sprint(self.address.Data, mod.Ident(), ":", p.StringNoModule())
 	req, err := http.NewRequest("GET", fullUrl, nil)
@@ -175,14 +182,56 @@ func (self *client) clientStream(params string, p *node.Path, ctx context.Contex
 	if err != nil {
 		return nil, err
 	}
-	stream := make(chan node.Node)
+	stream := make(chan streamEvent)
 	go func() {
 		events := decodeSse(resp.Body)
 		defer resp.Body.Close()
 		for {
 			select {
 			case event := <-events:
-				stream <- nodeutil.ReadJSONIO(bytes.NewReader(event))
+				var e streamEvent
+				var vals map[string]interface{}
+				err := json.Unmarshal(event, &vals)
+				if err == nil {
+					if !Compliance.DisableNotificationWrapper {
+						payload, found := vals["ietf-restconf:notification"].(map[string]interface{})
+						if !found {
+							err = errors.New("SSE message missing ietf-restconf:notification wrapper")
+						} else {
+							body, found := payload["event"].(map[string]interface{})
+							if !found {
+								err = errors.New("SSE message missing event payload")
+							} else {
+								tstr, found := payload["eventTime"].(string)
+								if !found {
+									err = errors.New("SSE message missing eventTime")
+								} else {
+									var t time.Time
+									t, err = time.Parse(eventTimeFormat, tstr)
+									if err != nil {
+										err = fmt.Errorf("eventTime in wrong format '%s'", tstr)
+									} else {
+										e = streamEvent{
+											Timestamp: t,
+											Node:      nodeutil.ReadJSONValues(body),
+										}
+									}
+								}
+							}
+						}
+					} else {
+						e = streamEvent{
+							Node:      nodeutil.ReadJSONIO(bytes.NewReader(event)),
+							Timestamp: time.Now(),
+						}
+					}
+				}
+				if err != nil {
+					e = streamEvent{
+						Node: node.ErrorNode{Err: err},
+					}
+				}
+				stream <- e
 			case <-ctx.Done():
 				return
 			}
@@ -219,7 +268,7 @@ func (self httpStream) OpenStream(name string, ext string) (io.Reader, error) {
 	return nil, err
 }
 
-func (self *client) clientDo(method string, params string, p *node.Path, payload io.Reader) (node.Node, error) {
+func (self *client) clientDo(method string, params string, p *node.Path, payload io.Reader) (io.ReadCloser, error) {
 	var req *http.Request
 	var err error
 	mod := meta.RootModule(p.Meta)
@@ -237,10 +286,9 @@ func (self *client) clientDo(method string, params string, p *node.Path, payload
 	if getErr != nil || resp.Body == nil {
 		return nil, getErr
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		msg, _ := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("(%d) %s", resp.StatusCode, string(msg))
 	}
-	return nodeutil.ReadJSONIO(resp.Body), nil
+	return resp.Body, nil
 }

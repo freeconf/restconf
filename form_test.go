@@ -48,7 +48,8 @@ func TestForm(t *testing.T) {
 	done := make(chan bool, 1)
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b := node.NewBrowser(m, formDummyNode(t))
-		input, err := requestNode(r)
+		x := m.Actions()["x"]
+		input, err := readInput(r, x)
 		chkErr(t, err)
 		resp := b.Root().Find("x").Action(input)
 		chkErr(t, resp.LastErr)

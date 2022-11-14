@@ -17,17 +17,17 @@ import (
 func SplitAddress(fullurl string) (address string, module string, path string, err error) {
 	eoSlashSlash := strings.Index(fullurl, "//") + 2
 	if eoSlashSlash < 2 {
-		err = badAddressErr
+		err = errBadAddress
 		return
 	}
 	eoSlash := eoSlashSlash + strings.IndexRune(fullurl[eoSlashSlash:], '/') + 1
 	if eoSlash <= eoSlashSlash {
-		err = badAddressErr
+		err = errBadAddress
 		return
 	}
 	colon := eoSlash + strings.IndexRune(fullurl[eoSlash:], ':')
 	if colon <= eoSlash {
-		err = badAddressErr
+		err = errBadAddress
 		return
 	}
 	moduleBegin := strings.LastIndex(fullurl[:colon], "/")
