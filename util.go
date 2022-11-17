@@ -41,10 +41,11 @@ func SplitAddress(fullurl string) (address string, module string, path string, e
 // otherwise go will emit error that you're trying to change header when
 // it's too late.  i think harmless, but still not what you intended and
 // actuall error is eatten.
-func handleErr(err error, w http.ResponseWriter) bool {
+func handleErr(err error, r *http.Request, w http.ResponseWriter) bool {
 	if err == nil {
 		return false
 	}
+	fc.Debug.Printf("web request error [%s] %s %s", r.Method, r.URL, err.Error())
 	http.Error(w, err.Error(), fc.HttpStatusCode(err))
 	return true
 }

@@ -38,7 +38,7 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-		if handleErr(err, w) {
+		if handleErr(err, r, w) {
 			return
 		}
 		switch r.Method {
@@ -119,7 +119,7 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 			var input node.Node
 			input, err = requestNode(r)
 			if err != nil {
-				handleErr(err, w)
+				handleErr(err, r, w)
 				return
 			}
 			err = sel.UpsertFrom(input).LastErr
@@ -130,7 +130,7 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 				var input node.Node
 				if a.Input() != nil {
 					if input, err = requestNode(r); err != nil {
-						handleErr(err, w)
+						handleErr(err, r, w)
 						return
 					}
 				}
@@ -156,7 +156,7 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 	}
 
 	if err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 	}
 }
 

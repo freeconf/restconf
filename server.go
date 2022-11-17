@@ -109,7 +109,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, f := range self.Filters {
 		var err error
 		if ctx, err = f(ctx, w, r); err != nil {
-			handleErr(err, w)
+			handleErr(err, r, w)
 			return
 		}
 	}
@@ -135,7 +135,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	op1, deviceId, p := shiftOptionalParamWithinSegment(r.URL, '=', '/')
 	device, err := self.findDevice(deviceId)
 	if err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 		return
 	}
 	switch op1 {
@@ -152,7 +152,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "data", "streams":
 			self.serveData(ctx, device, w, r)
 		case "ui":
-			self.serveStreamSource(w, device.UiSource(), r.URL.Path)
+			self.serveStreamSource(r, w, device.UiSource(), r.URL.Path)
 		case "schema":
 			// Hack - parse accept header to get proper content type
 			accept := r.Header.Get("Accept")
@@ -160,10 +160,10 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if strings.Contains(accept, "/json") {
 				self.serveSchema(ctx, w, r, device.SchemaSource())
 			} else {
-				self.serveStreamSource(w, device.SchemaSource(), r.URL.Path)
+				self.serveStreamSource(r, w, device.SchemaSource(), r.URL.Path)
 			}
 		default:
-			handleErr(badAddressErr, w)
+			handleErr(badAddressErr, r, w)
 		}
 		return
 	}
@@ -181,12 +181,12 @@ func (self *Server) serveSchema(ctx context.Context, w http.ResponseWriter, r *h
 	r.URL = p
 	m, err := parser.LoadModule(ypath, modName)
 	if err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 		return
 	}
 	ylib, err := parser.LoadModule(ypath, "fc-yang")
 	if err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 		return
 	}
 	b := nodeutil.Schema(ylib, m)
@@ -195,7 +195,7 @@ func (self *Server) serveSchema(ctx context.Context, w http.ResponseWriter, r *h
 }
 
 func (self *Server) serveData(ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request) {
-	if hndlr, p := self.shiftBrowserHandler(d, w, r.URL); hndlr != nil {
+	if hndlr, p := self.shiftBrowserHandler(r, d, w, r.URL); hndlr != nil {
 		r.URL = p
 		hndlr.ServeHTTP(ctx, w, r)
 	}
@@ -250,7 +250,7 @@ func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webA
 			if os.IsNotExist(ferr) {
 				useHomePage = true
 			} else {
-				handleErr(ferr, w)
+				handleErr(ferr, r, w)
 				return
 			}
 		} else {
@@ -266,9 +266,9 @@ func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webA
 		rdr, ferr = os.Open(filepath.Join(wap.homeDir, wap.homePage))
 		if ferr != nil {
 			if os.IsNotExist(ferr) {
-				handleErr(fc.NotFoundError, w)
+				handleErr(fc.NotFoundError, r, w)
 			} else {
-				handleErr(ferr, w)
+				handleErr(ferr, r, w)
 			}
 			return
 		}
@@ -279,24 +279,24 @@ func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webA
 	ctype := mime.TypeByExtension(ext)
 	w.Header().Set("Content-Type", ctype)
 	if _, err := io.Copy(w, rdr); err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 	}
 }
 
-func (self *Server) serveStreamSource(w http.ResponseWriter, s source.Opener, path string) {
+func (self *Server) serveStreamSource(r *http.Request, w http.ResponseWriter, s source.Opener, path string) {
 	rdr, err := s(path, "")
 	if err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 		return
 	} else if rdr == nil {
-		handleErr(fc.NotFoundError, w)
+		handleErr(fc.NotFoundError, r, w)
 		return
 	}
 	ext := filepath.Ext(path)
 	ctype := mime.TypeByExtension(ext)
 	w.Header().Set("Content-Type", ctype)
 	if _, err := io.Copy(w, rdr); err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 	}
 }
 
@@ -314,34 +314,34 @@ func (self *Server) findDevice(deviceId string) (device.Device, error) {
 	return device, nil
 }
 
-func (self *Server) shiftOperationAndDevice(w http.ResponseWriter, orig *url.URL) (string, device.Device, *url.URL) {
+func (self *Server) shiftOperationAndDevice(r *http.Request, w http.ResponseWriter, orig *url.URL) (string, device.Device, *url.URL) {
 	//  operation[=deviceId]/...
 	op, deviceId, p := shiftOptionalParamWithinSegment(orig, '=', '/')
 	if op == "" {
-		handleErr(fmt.Errorf("%w. no operation found in path", fc.NotFoundError), w)
+		handleErr(fmt.Errorf("%w. no operation found in path", fc.NotFoundError), r, w)
 		return op, nil, orig
 	}
 	device, err := self.findDevice(deviceId)
 	if err != nil {
-		handleErr(err, w)
+		handleErr(err, r, w)
 		return "", nil, orig
 	}
 	return op, device, p
 }
 
-func (self *Server) shiftBrowserHandler(d device.Device, w http.ResponseWriter, orig *url.URL) (*browserHandler, *url.URL) {
+func (self *Server) shiftBrowserHandler(r *http.Request, d device.Device, w http.ResponseWriter, orig *url.URL) (*browserHandler, *url.URL) {
 	if module, p := shift(orig, ':'); module != "" {
 		if browser, err := d.Browser(module); browser != nil {
 			return &browserHandler{
 				browser: browser,
 			}, p
 		} else if err != nil {
-			handleErr(err, w)
+			handleErr(err, r, w)
 			return nil, orig
 		}
 	}
 
-	handleErr(fmt.Errorf("%w. no module found in path", fc.NotFoundError), w)
+	handleErr(fmt.Errorf("%w. no module found in path", fc.NotFoundError), r, w)
 	return nil, orig
 }
 
