@@ -297,7 +297,8 @@ func (self *FileStore) newBrowser(fname string, m *meta.Module, oper node.Node) 
 
 				// this walks data for device's data for this module (a device might have multiple
 				// modules) and sends it to json
-				jwtr := &nodeutil.JSONWtr{Out: wtr, Pretty: true}
+				jwtr := nodeutil.NewJSONWtr(wtr)
+				jwtr.Pretty = true
 				if err := r.Selection.Constrain(params).InsertInto(jwtr.Node()).LastErr; err != nil {
 					return err
 				}

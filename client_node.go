@@ -192,8 +192,7 @@ func (self *clientNode) get(p *node.Path, params string) (node.Node, error) {
 func (self *clientNode) request(method string, p *node.Path, in node.Selection) (node.Node, error) {
 	var payload bytes.Buffer
 	if !in.IsNil() {
-		js := &nodeutil.JSONWtr{Out: &payload}
-		if err := in.InsertInto(js.Node()).LastErr; err != nil {
+		if err := in.InsertInto(nodeutil.NewJSONWtr(&payload).Node()).LastErr; err != nil {
 			return nil, err
 		}
 	}
@@ -215,8 +214,7 @@ func (self *clientNode) requestAction(p *node.Path, in node.Selection) (node.Nod
 			fmt.Fprintf(&payload, `{"%s:input":`, meta.OriginalModule(p.Meta).Ident())
 		}
 
-		js := &nodeutil.JSONWtr{Out: &payload}
-		if err := in.InsertInto(js.Node()).LastErr; err != nil {
+		if err := in.InsertInto(nodeutil.NewJSONWtr(&payload).Node()).LastErr; err != nil {
 			return nil, err
 		}
 		if !Compliance.DisableActionWrapper {
