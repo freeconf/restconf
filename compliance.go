@@ -13,13 +13,13 @@ package restconf
 // to application before any objects are constructed.
 var Compliance = ComplianceOptions{}
 
-// LegacyCompliance are the settings pre 2023 before true IETF compliance was
+// SimplifiedCompliance are the settings pre 2023 before true IETF compliance was
 // attempted. To use this:
 //
-//  restconf.Compliance = restconf.LegacyCompliance
+//  restconf.Compliance = restconf.SimplifiedCompliance
 //
 // or you can just set individual settings on restconf.Compliance global variable
-var LegacyCompliance = ComplianceOptions{
+var SimplifiedCompliance = ComplianceOptions{
 	ServeOperationsUnderData:   true,
 	DisableNotificationWrapper: true,
 	DisableActionWrapper:       true,
