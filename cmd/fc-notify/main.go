@@ -52,7 +52,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	unsubscribe, err := b.RootWithContext(ctx).Find(path).Notifications(func(payload node.Notification) {
-		wtr := &nodeutil.JSONWtr{Out: os.Stdout}
+		wtr := nodeutil.NewJSONWtr(os.Stdout)
 		if err = payload.Event.InsertInto(wtr.Node()).LastErr; err != nil {
 			log.Fatal(err)
 		}

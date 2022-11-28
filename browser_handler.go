@@ -110,9 +110,7 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 						etime := n.EventTime.Format(eventTimeFormat)
 						fmt.Fprintf(&buf, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
 					}
-					jout := &nodeutil.JSONWtr{Out: &buf}
-
-					err := n.Event.InsertInto(jout.Node()).LastErr
+					err := n.Event.InsertInto(nodeutil.NewJSONWtr(&buf).Node()).LastErr
 					if err != nil {
 						errOnSend <- err
 						return
@@ -139,8 +137,7 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 			} else {
 				// CRUD - Read
 				hdr.Set("Content-Type", mime.TypeByExtension(".json"))
-				jout := &nodeutil.JSONWtr{Out: w}
-				err = sel.InsertInto(jout.Node()).LastErr
+				err = sel.InsertInto(nodeutil.NewJSONWtr(w).Node()).LastErr
 			}
 		case "PUT":
 			// CRUD - Update
@@ -199,8 +196,7 @@ func sendOutput(out io.Writer, output node.Selection, a *meta.Rpc) error {
 			return err
 		}
 	}
-	jout := &nodeutil.JSONWtr{Out: out}
-	err := output.InsertInto(jout.Node()).LastErr
+	err := output.InsertInto(nodeutil.NewJSONWtr(out).Node()).LastErr
 
 	if !Compliance.DisableActionWrapper {
 		if _, err := fmt.Fprintf(out, "}"); err != nil {
