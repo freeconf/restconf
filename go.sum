@@ -1,9 +1,5 @@
-github.com/freeconf/yang v0.0.0-20221126180417-e3564becf39a h1:yQXBDrusltcU1mPxUmotEjB6eh74ne6Ob7mpvsN/Z/s=
-github.com/freeconf/yang v0.0.0-20221126180417-e3564becf39a/go.mod h1:Gyc/ZO3QRHem37+73nhndzr6kX+TEZde9Cbkf3dJFP8=
-github.com/freeconf/yang v0.0.0-20221128145936-c36007a2e64a h1:VauLOaR9TyU/l4/oCyyHZpTbNp1mDVai+VhiF3I3N+8=
-github.com/freeconf/yang v0.0.0-20221128145936-c36007a2e64a/go.mod h1:Gyc/ZO3QRHem37+73nhndzr6kX+TEZde9Cbkf3dJFP8=
-github.com/freeconf/yang v0.0.0-20221128221934-50d0de421a2e h1:T/2lAPRd6jSWGCaLpWD+Olj3kf/Om0j8uAVqQ9H+ncE=
-github.com/freeconf/yang v0.0.0-20221128221934-50d0de421a2e/go.mod h1:Gyc/ZO3QRHem37+73nhndzr6kX+TEZde9Cbkf3dJFP8=
+github.com/freeconf/yang v0.0.0-20221129142318-a555424bf792 h1:vzONsR8nz57xFcftMfOQaFbFFEPrFG7yuk2GX2zXp5o=
+github.com/freeconf/yang v0.0.0-20221129142318-a555424bf792/go.mod h1:Gyc/ZO3QRHem37+73nhndzr6kX+TEZde9Cbkf3dJFP8=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
