@@ -170,7 +170,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "operations":
 			self.serveOperations(ctx, device, w, r)
 		default:
-			handleErr(errBadAddress, w)
+			handleErr(errBadAddress, r, w)
 		}
 		return
 	}
@@ -202,7 +202,7 @@ func (self *Server) serveSchema(ctx context.Context, w http.ResponseWriter, r *h
 }
 
 func (self *Server) serveOperations(ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request) {
-	if hndlr, p := self.shiftBrowserHandler(d, w, r.URL); hndlr != nil {
+	if hndlr, p := self.shiftBrowserHandler(r, d, w, r.URL); hndlr != nil {
 		r.URL = p
 		hndlr.allowOperationsFlag = allowOperationsOnly
 		hndlr.ServeHTTP(ctx, w, r)

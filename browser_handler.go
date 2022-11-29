@@ -155,14 +155,14 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 				var input node.Node
 				if a.Input() != nil {
 					if input, err = readInput(r, a); err != nil {
-						handleErr(err, w)
+						handleErr(err, r, w)
 						return
 					}
 				}
 				if outputSel := sel.Action(input); !outputSel.IsNil() && a.Output() != nil {
 					w.Header().Set("Content-Type", mime.TypeByExtension(".json"))
 					if err = sendOutput(w, outputSel, a); err != nil {
-						handleErr(err, w)
+						handleErr(err, r, w)
 						return
 					}
 				} else {
