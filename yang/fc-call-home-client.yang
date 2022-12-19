@@ -31,17 +31,12 @@ module fc-call-home-client {
     }
 
     leaf deviceId {
-        description  "Unique device id within your infrastructure for this device.";
+        description  "Unique device id within your infrastructure for this device. Uses DEVICE_ID environment variableb by default";
         type string;
     }
 
     leaf address {
-        description "Hostname or IP address of application management system.";
-        type string;
-    }
-
-    leaf endpoint {
-        description "endpoint appended to address to device to register to. e.g. /restconf";
+        description "Hostname or IP address of application management system. Uses CALLHOME_ADDR environment variable by default";
         type string;
     }
 

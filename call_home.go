@@ -3,6 +3,7 @@ package restconf
 import (
 	"container/list"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/freeconf/restconf/device"
@@ -25,15 +26,22 @@ type CallHome struct {
 type CallHomeOptions struct {
 	DeviceId     string
 	Address      string
-	Endpoint     string
 	LocalAddress string
 	RetryRateMs  int
+}
+
+func DefaultCallHomeOptions() CallHomeOptions {
+	return CallHomeOptions{
+		DeviceId: os.Getenv("DEVICE_ID"),
+		Address:  os.Getenv("CALLHOME_ADDR"),
+	}
 }
 
 func NewCallHome(registrarProto device.ProtocolHandler) *CallHome {
 	return &CallHome{
 		registrarProto: registrarProto,
 		listeners:      list.New(),
+		options:        DefaultCallHomeOptions(),
 	}
 }
 
@@ -58,9 +66,6 @@ func (callh *CallHome) Options() CallHomeOptions {
 }
 
 func (callh *CallHome) ApplyOptions(options CallHomeOptions) error {
-	if callh.options == options {
-		return nil
-	}
 	callh.options = options
 	callh.Registered = false
 	fc.Debug.Print("connecting to ", callh.options.Address)
@@ -79,10 +84,9 @@ func (callh *CallHome) updateListeners(registrar device.Device, update RegisterU
 
 func (callh *CallHome) Register() {
 retry:
-	regUrl := callh.options.Address + callh.options.Endpoint
-	registrar, err := callh.registrarProto(regUrl)
+	registrar, err := callh.registrarProto(callh.options.Address)
 	if err != nil {
-		fc.Err.Printf("failed to build device with address %s. %s", regUrl, err)
+		fc.Err.Printf("failed to build device with address %s. %s", callh.options.Address, err)
 	} else {
 		if err = callh.register(registrar); err != nil {
 			fc.Err.Printf("failed to register %s", err)
