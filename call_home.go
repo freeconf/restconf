@@ -2,6 +2,7 @@ package restconf
 
 import (
 	"container/list"
+	"fmt"
 	"time"
 
 	"github.com/freeconf/restconf/device"
@@ -9,16 +10,14 @@ import (
 	"github.com/freeconf/yang/nodeutil"
 )
 
-// Implements RFC Draft in spirit-only
-//   https://tools.ietf.org/html/draft-ietf-netconf-call-home-17
+// Implements RFC Draft
+//   https://www.rfc-editor.org/rfc/rfc8071.html
 //
 type CallHome struct {
 	options        CallHomeOptions
-	d              device.Device
 	registrarProto device.ProtocolHandler
-	registerTimer  *time.Ticker
 	Registered     bool
-	registrar      device.Device
+	registrar      device.Device // handle to the remote controller
 	LastErr        string
 	listeners      *list.List
 }
@@ -47,70 +46,74 @@ const (
 
 type RegisterListener func(d device.Device, update RegisterUpdate)
 
-func (self *CallHome) OnRegister(l RegisterListener) nodeutil.Subscription {
-	if self.Registered {
-		l(self.registrar, Register)
+func (callh *CallHome) OnRegister(l RegisterListener) nodeutil.Subscription {
+	if callh.Registered {
+		l(callh.registrar, Register)
 	}
-	return nodeutil.NewSubscription(self.listeners, self.listeners.PushBack(l))
+	return nodeutil.NewSubscription(callh.listeners, callh.listeners.PushBack(l))
 }
 
-func (self *CallHome) Options() CallHomeOptions {
-	return self.options
+func (callh *CallHome) Options() CallHomeOptions {
+	return callh.options
 }
 
-func (self *CallHome) ApplyOptions(options CallHomeOptions) error {
-	if self.options == options {
+func (callh *CallHome) ApplyOptions(options CallHomeOptions) error {
+	if callh.options == options {
 		return nil
 	}
-	self.options = options
-	self.Registered = false
-	fc.Debug.Print("connecting to ", self.options.Address)
-	self.Register()
+	callh.options = options
+	callh.Registered = false
+	fc.Debug.Print("connecting to ", callh.options.Address)
+	callh.Register()
 	return nil
 }
 
-func (self *CallHome) updateListeners(registrar device.Device, update RegisterUpdate) {
-	self.registrar = registrar
-	p := self.listeners.Front()
+func (callh *CallHome) updateListeners(registrar device.Device, update RegisterUpdate) {
+	callh.registrar = registrar
+	p := callh.listeners.Front()
 	for p != nil {
-		p.Value.(RegisterListener)(self.registrar, update)
+		p.Value.(RegisterListener)(callh.registrar, update)
 		p = p.Next()
 	}
 }
 
-func (self *CallHome) Register() {
+func (callh *CallHome) Register() {
 retry:
-	regUrl := self.options.Address + self.options.Endpoint
-	registrar, err := self.registrarProto(regUrl)
+	regUrl := callh.options.Address + callh.options.Endpoint
+	registrar, err := callh.registrarProto(regUrl)
 	if err != nil {
 		fc.Err.Printf("failed to build device with address %s. %s", regUrl, err)
 	} else {
-		if err = self.register(registrar); err != nil {
+		if err = callh.register(registrar); err != nil {
 			fc.Err.Printf("failed to register %s", err)
 		} else {
 			return
 		}
 	}
-	if self.options.RetryRateMs == 0 {
+	if callh.options.RetryRateMs == 0 {
 		panic("failed to register and no retry rate configured")
 	}
-	<-time.After(time.Duration(self.options.RetryRateMs) * time.Millisecond)
+	<-time.After(time.Duration(callh.options.RetryRateMs) * time.Millisecond)
 	goto retry
 }
 
-func (self *CallHome) register(registrar device.Device) error {
-	reg, err := registrar.Browser("fc-registrar")
+func (callh *CallHome) register(registrar device.Device) error {
+	modname := "fc-call-home-server"
+	reg, err := registrar.Browser(modname)
 	if err != nil {
 		return err
 	}
+	if reg == nil {
+		return fmt.Errorf("%s module not found on remote target", modname)
+	}
 	r := map[string]interface{}{
-		"deviceId": self.options.DeviceId,
-		"address":  self.options.LocalAddress,
+		"deviceId": callh.options.DeviceId,
+		"address":  callh.options.LocalAddress,
 	}
 	err = reg.Root().Find("register").Action(nodeutil.ReflectChild(r)).LastErr
 	if err == nil {
-		self.updateListeners(registrar, Register)
-		self.Registered = true
+		callh.updateListeners(registrar, Register)
+		callh.Registered = true
 	}
 	return err
 }

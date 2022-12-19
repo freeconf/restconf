@@ -62,6 +62,12 @@ func NewServer(d *device.Local) *Server {
 		panic(err)
 	}
 
+	rc := ProtocolHandler(d.SchemaSource())
+	m.CallHome = NewCallHome(rc)
+	if err := d.Add("fc-call-home-client", CallHomeNode(m.CallHome)); err != nil {
+		panic(err)
+	}
+
 	// Required by all devices according to RFC
 	if err := d.Add("ietf-yang-library", device.LocalDeviceYangLibNode(m.ModuleAddress, d)); err != nil {
 		panic(err)

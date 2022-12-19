@@ -1,5 +1,4 @@
-module fc-registrar {
-
+module fc-call-home-server {
     revision 0;
     
     rpc register {
@@ -20,24 +19,4 @@ module fc-registrar {
             }
         }
     }    
-
-    grouping deviceHnd {
-        leaf deviceId {
-            type string;
-        }
-
-        leaf address {
-            type string;
-        }        
-    }
-
-    list registration {
-        key "deviceId";
-        config false;
-        uses deviceHnd;
-    }
-
-    notification update {
-        uses deviceHnd;
-    }
 }

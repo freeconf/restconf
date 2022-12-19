@@ -21,14 +21,6 @@ func Node(mgmt *Server, ypath source.Opener) node.Node {
 				if mgmt.Web != nil {
 					return stock.WebServerNode(mgmt.Web), nil
 				}
-			case "callHome":
-				if r.New {
-					rc := ProtocolHandler(ypath)
-					mgmt.CallHome = NewCallHome(rc)
-				}
-				if mgmt.CallHome != nil {
-					return CallHomeNode(mgmt.CallHome), nil
-				}
 			default:
 				return p.Child(r)
 			}

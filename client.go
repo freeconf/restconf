@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -37,14 +38,15 @@ func ProtocolHandler(ypath source.Opener) device.ProtocolHandler {
 }
 
 type Address struct {
-	Base     string
-	Data     string
-	Stream   string
-	Ui       string
-	Schema   string
-	DeviceId string
-	Host     string
-	Origin   string
+	Base       string
+	Data       string
+	Stream     string
+	Ui         string
+	Operations string
+	Schema     string
+	DeviceId   string
+	Host       string
+	Origin     string
 }
 
 func NewAddress(urlAddr string) (Address, error) {
@@ -59,12 +61,13 @@ func NewAddress(urlAddr string) (Address, error) {
 	}
 
 	return Address{
-		Base:     urlAddr,
-		Data:     urlAddr + "data/",
-		Schema:   urlAddr + "schema/",
-		Ui:       urlAddr + "ui/",
-		Origin:   "http://" + urlParts.Host,
-		DeviceId: findDeviceIdInUrl(urlAddr),
+		Base:       urlAddr,
+		Data:       urlAddr + "data/",
+		Schema:     urlAddr + "schema/",
+		Ui:         urlAddr + "ui/",
+		Operations: urlAddr + "operations/",
+		Origin:     "http://" + urlParts.Host,
+		DeviceId:   findDeviceIdInUrl(urlAddr),
 	}, nil
 }
 
@@ -123,43 +126,43 @@ type client struct {
 	modules    map[string]*meta.Module
 }
 
-func (self *client) SchemaSource() source.Opener {
-	return self.schemaPath
+func (c *client) SchemaSource() source.Opener {
+	return c.schemaPath
 }
 
-func (self *client) UiSource() source.Opener {
+func (c *client) UiSource() source.Opener {
 	s := httpStream{
-		client: self.client,
-		url:    self.address.Ui,
+		client: c.client,
+		url:    c.address.Ui,
 	}
 	return s.OpenStream
 }
 
-func (self *client) Browser(module string) (*node.Browser, error) {
-	d := &clientNode{support: self, device: self.address.DeviceId}
-	m, err := self.module(module)
+func (c *client) Browser(module string) (*node.Browser, error) {
+	d := &clientNode{support: c, device: c.address.DeviceId}
+	m, err := c.module(module)
 	if err != nil {
 		return nil, err
 	}
-	return node.NewBrowser(m, d.node()), nil
+	return node.NewBrowser(m, nodeutil.Dump(d.node(), os.Stdout)), nil
 }
 
-func (self *client) Close() {
+func (c *client) Close() {
 }
 
-func (self *client) Modules() map[string]*meta.Module {
-	return self.modules
+func (c *client) Modules() map[string]*meta.Module {
+	return c.modules
 }
 
-func (self *client) module(module string) (*meta.Module, error) {
+func (c *client) module(module string) (*meta.Module, error) {
 	// caching module, but should replace w/cache that can refresh on stale
-	m := self.modules[module]
+	m := c.modules[module]
 	if m == nil {
 		var err error
-		if m, err = parser.LoadModule(self.schemaPath, module); err != nil {
+		if m, err = parser.LoadModule(c.schemaPath, module); err != nil {
 			return nil, err
 		}
-		self.modules[module] = m
+		c.modules[module] = m
 	}
 	return m, nil
 }
@@ -169,21 +172,25 @@ type streamEvent struct {
 	Node      node.Node
 }
 
-func (self *client) clientStream(params string, p *node.Path, ctx context.Context) (<-chan streamEvent, error) {
+func (c *client) clientStream(params string, p *node.Path, ctx context.Context) (<-chan streamEvent, error) {
 	mod := meta.RootModule(p.Meta)
-	fullUrl := fmt.Sprint(self.address.Data, mod.Ident(), ":", p.StringNoModule())
+	fullUrl := fmt.Sprint(c.address.Data, mod.Ident(), ":", p.StringNoModule())
 	req, err := http.NewRequest("GET", fullUrl, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "text/event-stream")
 	fc.Info.Printf("<=> SSE %s", fullUrl)
-	resp, err := self.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
 	stream := make(chan streamEvent)
 	go func() {
+		resp, err := c.client.Do(req)
+		if err != nil {
+			stream <- streamEvent{
+				Timestamp: time.Now(),
+				Node:      node.ErrorNode{Err: err},
+			}
+			return
+		}
 		events := decodeSse(resp.Body)
 		defer resp.Body.Close()
 		for {
@@ -228,7 +235,8 @@ func (self *client) clientStream(params string, p *node.Path, ctx context.Contex
 				}
 				if err != nil {
 					e = streamEvent{
-						Node: node.ErrorNode{Err: err},
+						Node:      node.ErrorNode{Err: err},
+						Timestamp: time.Now(),
 					}
 				}
 				stream <- e
@@ -249,30 +257,38 @@ type httpStream struct {
 	url    string
 }
 
-func (self httpStream) ResolveModuleHnd(hnd device.ModuleHnd) (*meta.Module, error) {
-	m, _ := parser.LoadModule(self.ypath, hnd.Name)
+func (s httpStream) ResolveModuleHnd(hnd device.ModuleHnd) (*meta.Module, error) {
+	m, _ := parser.LoadModule(s.ypath, hnd.Name)
 	if m != nil {
 		return m, nil
 	}
-	return parser.LoadModule(self.OpenStream, hnd.Name)
+	return parser.LoadModule(s.OpenStream, hnd.Name)
 }
 
 // OpenStream implements source.Opener
-func (self httpStream) OpenStream(name string, ext string) (io.Reader, error) {
-	fullUrl := self.url + name + ext
+func (s httpStream) OpenStream(name string, ext string) (io.Reader, error) {
+	fullUrl := s.url + name + ext
 	fc.Debug.Printf("httpStream url %s, name=%s, ext=%s", fullUrl, name, ext)
-	resp, err := self.client.Get(fullUrl)
+	resp, err := s.client.Get(fullUrl)
 	if resp != nil {
 		return resp.Body, err
 	}
 	return nil, err
 }
 
-func (self *client) clientDo(method string, params string, p *node.Path, payload io.Reader) (io.ReadCloser, error) {
+func (c *client) clientDo(method string, params string, p *node.Path, payload io.Reader) (io.ReadCloser, error) {
 	var req *http.Request
 	var err error
 	mod := meta.RootModule(p.Meta)
-	fullUrl := fmt.Sprint(self.address.Data, mod.Ident(), ":", p.StringNoModule())
+	fullUrl := fmt.Sprint(c.address.Data, mod.Ident(), ":", p.StringNoModule())
+
+	if meta.IsAction(p.Meta) && !Compliance.ServeOperationsUnderData {
+		isRootLevelRpc := (p.Meta.Parent() == mod)
+		if isRootLevelRpc {
+			fullUrl = fmt.Sprint(c.address.Operations, mod.Ident(), ":", p.StringNoModule())
+		}
+	}
+
 	if params != "" {
 		fullUrl = fmt.Sprint(fullUrl, "?", params)
 	}
@@ -282,13 +298,16 @@ func (self *client) clientDo(method string, params string, p *node.Path, payload
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	fc.Info.Printf("=> %s %s", method, fullUrl)
-	resp, getErr := self.client.Do(req)
-	if getErr != nil || resp.Body == nil {
-		return nil, getErr
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
 	}
 	if resp.StatusCode != 200 {
 		msg, _ := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("(%d) %s", resp.StatusCode, string(msg))
+	}
+	if resp.Body == nil || resp.ContentLength == 0 {
+		return nil, nil
 	}
 	return resp.Body, nil
 }

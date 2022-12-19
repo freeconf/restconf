@@ -4,9 +4,6 @@ module fc-restconf {
     import fc-stocklib {
         prefix "stock";
     }
-    import fc-call-home {
-        prefix "chome";
-    }
     
     description "service that implements RESTCONF RFC8040 device protocol";
 	revision 0;
@@ -89,9 +86,5 @@ module fc-restconf {
                 type int64;
             }
         }
-    }
-    
-    container callHome {
-        uses chome:callHome;
     }
 }
