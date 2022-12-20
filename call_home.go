@@ -8,6 +8,7 @@ import (
 
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
+	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
 )
 
@@ -66,8 +67,14 @@ func (callh *CallHome) Options() CallHomeOptions {
 }
 
 func (callh *CallHome) ApplyOptions(options CallHomeOptions) error {
+	if nonfatal := callh.unregister(); nonfatal != nil {
+		fc.Err.Printf("could not unregister. %s", nonfatal)
+	}
 	callh.options = options
 	callh.Registered = false
+	if callh.options.Address == "" {
+		return nil
+	}
 	fc.Debug.Print("connecting to ", callh.options.Address)
 	callh.Register()
 	return nil
@@ -101,14 +108,44 @@ retry:
 	goto retry
 }
 
-func (callh *CallHome) register(registrar device.Device) error {
+func (callh *CallHome) serverApi(registrar device.Device) (*node.Browser, error) {
 	modname := "fc-call-home-server"
 	reg, err := registrar.Browser(modname)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if reg == nil {
-		return fmt.Errorf("%s module not found on remote target", modname)
+		return nil, fmt.Errorf("%s module not found on remote target", modname)
+	}
+	return reg, nil
+}
+
+func (callh *CallHome) unregister() error {
+	if !callh.Registered {
+		return nil
+	}
+	registrar, err := callh.registrarProto(callh.options.Address)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		callh.updateListeners(registrar, Unregister)
+		callh.Registered = false
+	}()
+	reg, err := callh.serverApi(registrar)
+	if err != nil {
+		return err
+	}
+	if err = reg.Root().Find("register").Action(nil).LastErr; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (callh *CallHome) register(registrar device.Device) error {
+	reg, err := callh.serverApi(registrar)
+	if err != nil {
+		return err
 	}
 	r := map[string]interface{}{
 		"deviceId": callh.options.DeviceId,

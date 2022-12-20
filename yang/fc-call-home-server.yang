@@ -18,5 +18,9 @@ module fc-call-home-server {
                 mandatory true;
             }
         }
-    }    
+    }
+
+    rpc unregister {
+        description "Your registration will eventually timeout, but this is faster way to commmunicate you are unavailable.";
+    }
 }
