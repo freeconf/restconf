@@ -13,7 +13,7 @@ import (
 	"github.com/freeconf/yang/source"
 )
 
-func TestClient2(t *testing.T) {
+func TestClient(t *testing.T) {
 	// setup a server on a port and use client to connect
 	ypath := source.Path("./yang:./testdata")
 	car := testdata.New()
@@ -30,13 +30,13 @@ func TestClient2(t *testing.T) {
 			"speed": 5
 		}
 	}`
-	fc.AssertEqual(t, nil, local.ApplyStartupConfig(strings.NewReader(cfg)))
+	fc.RequireEqual(t, nil, local.ApplyStartupConfig(strings.NewReader(cfg)))
 
 	c := Client{YangPath: ypath}
 	dev, err := c.NewDevice("http://localhost:10999/restconf")
-	fc.AssertEqual(t, nil, err)
+	fc.RequireEqual(t, nil, err)
 	b, err := dev.Browser("car")
-	fc.AssertEqual(t, nil, err)
+	fc.RequireEqual(t, nil, err)
 
 	root := b.Root()
 
@@ -57,10 +57,10 @@ func TestClient2(t *testing.T) {
 
 	// notify
 	done := make(chan bool)
-	sub, err := root.Find("update").Notifications(func(n node.Notification) {
+	sub, err := root.Find("update?filter=running%3D'false'").Notifications(func(n node.Notification) {
 		done <- true
 	})
-	fc.AssertEqual(t, nil, err)
+	fc.RequireEqual(t, nil, err)
 	<-done
 	sub()
 }

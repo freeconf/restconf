@@ -73,6 +73,7 @@ func (callh *CallHome) ApplyOptions(options CallHomeOptions) error {
 	callh.options = options
 	callh.Registered = false
 	if callh.options.Address == "" {
+		fc.Debug.Print("no call home address configured")
 		return nil
 	}
 	fc.Debug.Print("connecting to ", callh.options.Address)

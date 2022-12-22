@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -144,7 +143,7 @@ func (c *client) Browser(module string) (*node.Browser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return node.NewBrowser(m, nodeutil.Dump(d.node(), os.Stdout)), nil
+	return node.NewBrowser(m, d.node()), nil
 }
 
 func (c *client) Close() {
