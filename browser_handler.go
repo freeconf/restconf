@@ -10,7 +10,6 @@ import (
 
 	"context"
 
-	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
@@ -30,9 +29,13 @@ type browserHandler struct {
 
 var subscribeCount int
 
-const eventTimeFormat = "2006-01-02T15:04:05-07:00"
+const EventTimeFormat = "2006-01-02T15:04:05-07:00"
 
-func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+type ProxyContextKey string
+
+var RemoteIpAddressKey = ProxyContextKey("FC_REMOTE_IP")
+
+func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	var err error
 	var payload node.Node
 	var cancel context.CancelFunc
@@ -40,9 +43,9 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 	defer cancel()
 	if r.RemoteAddr != "" {
 		host, _ := ipAddrSplitHostPort(r.RemoteAddr)
-		ctx = context.WithValue(ctx, device.RemoteIpAddressKey, host)
+		ctx = context.WithValue(ctx, RemoteIpAddressKey, host)
 	}
-	sel := self.browser.RootWithContext(ctx)
+	sel := hndlr.browser.RootWithContext(ctx)
 	if sel = sel.FindUrl(r.URL); sel.LastErr == nil {
 		hdr := w.Header()
 		if sel.IsNil() {
@@ -52,13 +55,13 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 		if handleErr(err, r, w) {
 			return
 		}
-		if self.allowOperationsFlag != allowOperationsAny {
+		if hndlr.allowOperationsFlag != allowOperationsAny {
 			isOperation := r.Method == "POST" && meta.IsAction(sel.Meta()) && sel.Path.Len() == 2
-			if self.allowOperationsFlag == allowOperationsOnly && !isOperation {
+			if hndlr.allowOperationsFlag == allowOperationsOnly && !isOperation {
 				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 				return
 			}
-			if self.allowOperationsFlag == allowOperationsNone && isOperation {
+			if hndlr.allowOperationsFlag == allowOperationsNone && isOperation {
 				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 				return
 			}
@@ -107,7 +110,7 @@ func (self *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter
 					// data: {payload}\n\n
 					fmt.Fprint(&buf, "data: ")
 					if !Compliance.DisableNotificationWrapper {
-						etime := n.EventTime.Format(eventTimeFormat)
+						etime := n.EventTime.Format(EventTimeFormat)
 						fmt.Fprintf(&buf, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
 					}
 					err := n.Event.InsertInto(nodeutil.NewJSONWtr(&buf).Node()).LastErr

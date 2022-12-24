@@ -270,7 +270,9 @@ func tiresNode(tires []*tire) node.Node {
 			return nodeutil.BasicNextItem{
 				GetByKey: func() error {
 					pos := r.Key[0].Value().(int)
-					t = tires[pos]
+					if pos < len(tires) {
+						t = tires[pos]
+					}
 					return nil
 				},
 				GetByRow: func() ([]val.Value, error) {

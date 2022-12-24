@@ -1,4 +1,4 @@
-package restconf
+package callhome
 
 import (
 	"container/list"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/freeconf/restconf/client"
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
@@ -16,34 +17,40 @@ import (
 //   https://www.rfc-editor.org/rfc/rfc8071.html
 //
 type CallHome struct {
-	options        CallHomeOptions
-	registrarProto device.ProtocolHandler
-	Registered     bool
-	registrar      device.Device // handle to the remote controller
-	LastErr        string
-	listeners      *list.List
+	options    Options
+	proto      device.ProtocolHandler
+	Registered bool
+	registrar  device.Device // handle to the remote controller
+	LastErr    string
+	listeners  *list.List
 }
 
-type CallHomeOptions struct {
+type Options struct {
 	DeviceId     string
 	Address      string
 	LocalAddress string
 	RetryRateMs  int
 }
 
-func DefaultCallHomeOptions() CallHomeOptions {
-	return CallHomeOptions{
+func DefaultOptions() Options {
+	return Options{
 		DeviceId: os.Getenv("DEVICE_ID"),
 		Address:  os.Getenv("CALLHOME_ADDR"),
 	}
 }
 
-func NewCallHome(registrarProto device.ProtocolHandler) *CallHome {
+func New(proto device.ProtocolHandler) *CallHome {
 	return &CallHome{
-		registrarProto: registrarProto,
-		listeners:      list.New(),
-		options:        DefaultCallHomeOptions(),
+		proto:     proto,
+		listeners: list.New(),
+		options:   DefaultOptions(),
 	}
+}
+
+// Install creates and registered Call Home support into local device.
+func Install(d *device.Local) error {
+	ch := New(client.ProtocolHandler(d.SchemaSource()))
+	return d.Add("fc-call-home-client", CallHomeNode(ch))
 }
 
 type RegisterUpdate int
@@ -62,11 +69,11 @@ func (callh *CallHome) OnRegister(l RegisterListener) nodeutil.Subscription {
 	return nodeutil.NewSubscription(callh.listeners, callh.listeners.PushBack(l))
 }
 
-func (callh *CallHome) Options() CallHomeOptions {
+func (callh *CallHome) Options() Options {
 	return callh.options
 }
 
-func (callh *CallHome) ApplyOptions(options CallHomeOptions) error {
+func (callh *CallHome) ApplyOptions(options Options) error {
 	if nonfatal := callh.unregister(); nonfatal != nil {
 		fc.Err.Printf("could not unregister. %s", nonfatal)
 	}
@@ -92,7 +99,7 @@ func (callh *CallHome) updateListeners(registrar device.Device, update RegisterU
 
 func (callh *CallHome) Register() {
 retry:
-	registrar, err := callh.registrarProto(callh.options.Address)
+	registrar, err := callh.proto(callh.options.Address)
 	if err != nil {
 		fc.Err.Printf("failed to build device with address %s. %s", callh.options.Address, err)
 	} else {
@@ -125,7 +132,7 @@ func (callh *CallHome) unregister() error {
 	if !callh.Registered {
 		return nil
 	}
-	registrar, err := callh.registrarProto(callh.options.Address)
+	registrar, err := callh.proto(callh.options.Address)
 	if err != nil {
 		return err
 	}

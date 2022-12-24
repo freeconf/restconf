@@ -1,10 +1,12 @@
-package restconf
+package client
 
 import (
+	"flag"
 	"fmt"
 	"strings"
 	"testing"
 
+	"github.com/freeconf/restconf"
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/restconf/testdata"
 	"github.com/freeconf/yang/fc"
@@ -13,13 +15,16 @@ import (
 	"github.com/freeconf/yang/source"
 )
 
+var updateFlag = flag.Bool("update", false, "update golden files instead of verifying against them")
+
 func TestClient(t *testing.T) {
 	// setup a server on a port and use client to connect
-	ypath := source.Path("./yang:./testdata")
+	ypath := source.Path("../yang:../testdata")
 	car := testdata.New()
 	local := device.New(ypath)
 	local.Add("car", testdata.Manage(car))
-	/*server := */ NewServer(local)
+	s := restconf.NewServer(local)
+	defer s.Close()
 	cfg := `{
 		"fc-restconf": {
 			"web" : {

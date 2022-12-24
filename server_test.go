@@ -28,6 +28,7 @@ func TestServer(t *testing.T) {
 	d := device.New(ypath)
 	d.AddBrowser(bServer)
 	s := NewServer(d)
+	defer s.Close()
 	err := d.ApplyStartupConfig(strings.NewReader(`
 		{
 			"fc-restconf" : {

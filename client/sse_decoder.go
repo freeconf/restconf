@@ -1,4 +1,4 @@
-package restconf
+package client
 
 import (
 	"bufio"

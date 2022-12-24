@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"container/list"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,7 +27,6 @@ import (
 
 type Server struct {
 	Web                      *stock.HttpServer
-	CallHome                 *CallHome
 	webApps                  []webApp
 	Auth                     secure.Auth
 	Ver                      string
@@ -48,6 +48,8 @@ type Server struct {
 	AllowLegacyCompliance bool
 }
 
+var ErrBadAddress = errors.New("expected format: http://server/restconf[=device]/operation/module:path")
+
 type RequestFilter func(ctx context.Context, w http.ResponseWriter, r *http.Request) (context.Context, error)
 
 func NewServer(d *device.Local) *Server {
@@ -62,12 +64,6 @@ func NewServer(d *device.Local) *Server {
 		panic(err)
 	}
 
-	rc := ProtocolHandler(d.SchemaSource())
-	m.CallHome = NewCallHome(rc)
-	if err := d.Add("fc-call-home-client", CallHomeNode(m.CallHome)); err != nil {
-		panic(err)
-	}
-
 	// Required by all devices according to RFC
 	if err := d.Add("ietf-yang-library", device.LocalDeviceYangLibNode(m.ModuleAddress, d)); err != nil {
 		panic(err)
@@ -75,11 +71,13 @@ func NewServer(d *device.Local) *Server {
 	return m
 }
 
-func (self *Server) Close() {
-	if self.Web != nil {
-		self.Web.Server.Close()
-		self.Web = nil
+func (self *Server) Close() error {
+	if self.Web == nil {
+		return nil
 	}
+	err := self.Web.Server.Close()
+	self.Web = nil
+	return err
 }
 
 func (self *Server) ModuleAddress(m *meta.Module) string {
@@ -176,7 +174,7 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "operations":
 			self.serveOperations(ctx, device, w, r)
 		default:
-			handleErr(errBadAddress, r, w)
+			handleErr(ErrBadAddress, r, w)
 		}
 		return
 	}

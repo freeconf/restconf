@@ -1,10 +1,11 @@
-package restconf
+package client
 
 import (
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/freeconf/restconf"
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
@@ -13,9 +14,9 @@ import (
 )
 
 func TestClientNotif(t *testing.T) {
-	ypath := source.Path("./testdata:./yang")
+	ypath := source.Path("../testdata:../yang")
 	m := parser.RequireModule(ypath, "x")
-	var s *Server
+	var s *restconf.Server
 	send := make(chan string, 1)
 	n := &nodeutil.Basic{
 		OnNotify: func(r node.NotifyRequest) (node.NotifyCloser, error) {
@@ -34,12 +35,13 @@ func TestClientNotif(t *testing.T) {
 	bServer := node.NewBrowser(m, n)
 	d := device.New(ypath)
 	d.AddBrowser(bServer)
-	s = NewServer(d)
+	s = restconf.NewServer(d)
+	defer s.Close()
 	err := d.ApplyStartupConfig(strings.NewReader(`
 		{
 			"fc-restconf" : {
 				"web": {
-					"port" : ":9080"
+					"port" : ":9081"
 				},
 				"debug" : true
 			}
@@ -49,7 +51,7 @@ func TestClientNotif(t *testing.T) {
 	}
 	<-time.After(2 * time.Second)
 	factory := Client{YangPath: ypath}
-	c, err := factory.NewDevice("http://localhost:9080/restconf")
+	c, err := factory.NewDevice("http://localhost:9081/restconf")
 	if err != nil {
 		t.Fatal(err)
 	}

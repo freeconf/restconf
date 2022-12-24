@@ -1,4 +1,4 @@
-package restconf
+package client
 
 import (
 	"bytes"
@@ -11,9 +11,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
+	"github.com/freeconf/restconf"
 	"github.com/freeconf/restconf/device"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
@@ -66,17 +66,8 @@ func NewAddress(urlAddr string) (Address, error) {
 		Ui:         urlAddr + "ui/",
 		Operations: urlAddr + "operations/",
 		Origin:     "http://" + urlParts.Host,
-		DeviceId:   findDeviceIdInUrl(urlAddr),
+		DeviceId:   restconf.FindDeviceIdInUrl(urlAddr),
 	}, nil
-}
-
-func findDeviceIdInUrl(addr string) string {
-	segs := strings.SplitAfter(addr, "/restconf=")
-	if len(segs) == 2 {
-		post := segs[1]
-		return post[:len(post)-1]
-	}
-	return ""
 }
 
 func (self Client) NewDevice(url string) (device.Device, error) {
@@ -113,8 +104,6 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 	c.modules = modules
 	return c, nil
 }
-
-var errBadAddress = errors.New("expected format: http://server/restconf[=device]/operation/module:path")
 
 type client struct {
 	address    Address
@@ -199,7 +188,7 @@ func (c *client) clientStream(params string, p *node.Path, ctx context.Context) 
 				var vals map[string]interface{}
 				err := json.Unmarshal(event, &vals)
 				if err == nil {
-					if !Compliance.DisableNotificationWrapper {
+					if !restconf.Compliance.DisableNotificationWrapper {
 						payload, found := vals["ietf-restconf:notification"].(map[string]interface{})
 						if !found {
 							err = errors.New("SSE message missing ietf-restconf:notification wrapper")
@@ -213,7 +202,7 @@ func (c *client) clientStream(params string, p *node.Path, ctx context.Context) 
 									err = errors.New("SSE message missing eventTime")
 								} else {
 									var t time.Time
-									t, err = time.Parse(eventTimeFormat, tstr)
+									t, err = time.Parse(restconf.EventTimeFormat, tstr)
 									if err != nil {
 										err = fmt.Errorf("eventTime in wrong format '%s'", tstr)
 									} else {
@@ -281,7 +270,7 @@ func (c *client) clientDo(method string, params string, p *node.Path, payload io
 	mod := meta.RootModule(p.Meta)
 	fullUrl := fmt.Sprint(c.address.Data, mod.Ident(), ":", p.StringNoModule())
 
-	if meta.IsAction(p.Meta) && !Compliance.ServeOperationsUnderData {
+	if meta.IsAction(p.Meta) && !restconf.Compliance.ServeOperationsUnderData {
 		isRootLevelRpc := (p.Meta.Parent() == mod)
 		if isRootLevelRpc {
 			fullUrl = fmt.Sprint(c.address.Operations, mod.Ident(), ":", p.StringNoModule())

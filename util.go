@@ -17,17 +17,17 @@ import (
 func SplitAddress(fullurl string) (address string, module string, path string, err error) {
 	eoSlashSlash := strings.Index(fullurl, "//") + 2
 	if eoSlashSlash < 2 {
-		err = errBadAddress
+		err = ErrBadAddress
 		return
 	}
 	eoSlash := eoSlashSlash + strings.IndexRune(fullurl[eoSlashSlash:], '/') + 1
 	if eoSlash <= eoSlashSlash {
-		err = errBadAddress
+		err = ErrBadAddress
 		return
 	}
 	colon := eoSlash + strings.IndexRune(fullurl[eoSlash:], ':')
 	if colon <= eoSlash {
-		err = errBadAddress
+		err = ErrBadAddress
 		return
 	}
 	moduleBegin := strings.LastIndex(fullurl[:colon], "/")
@@ -35,6 +35,16 @@ func SplitAddress(fullurl string) (address string, module string, path string, e
 	module = fullurl[moduleBegin+1 : colon]
 	path = fullurl[colon+1:]
 	return
+}
+
+// FindDeviceIdInUrl picks out device id in URL
+func FindDeviceIdInUrl(addr string) string {
+	segs := strings.SplitAfter(addr, "/restconf=")
+	if len(segs) == 2 {
+		post := segs[1]
+		return post[:len(post)-1]
+	}
+	return ""
 }
 
 // only call this when you know that no content has been sent to client

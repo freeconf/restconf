@@ -1,4 +1,4 @@
-package restconf
+package client
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 
 	"io"
 
+	"github.com/freeconf/restconf"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
@@ -220,7 +221,7 @@ func (cn *clientNode) request(method string, p *node.Path, in node.Selection) (n
 func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node, error) {
 	var payload bytes.Buffer
 	if !in.IsNil() {
-		if !Compliance.DisableActionWrapper {
+		if !restconf.Compliance.DisableActionWrapper {
 			// IETF formated input
 			// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.1
 
@@ -230,7 +231,7 @@ func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node,
 		if err := in.InsertInto(nodeutil.NewJSONWtr(&payload).Node()).LastErr; err != nil {
 			return nil, err
 		}
-		if !Compliance.DisableActionWrapper {
+		if !restconf.Compliance.DisableActionWrapper {
 			fmt.Fprintf(&payload, "}")
 		}
 	}
@@ -239,7 +240,7 @@ func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node,
 		return nil, err
 	}
 	if resp != nil {
-		if !Compliance.DisableActionWrapper {
+		if !restconf.Compliance.DisableActionWrapper {
 			// IETF formated input
 			// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
 			var vals map[string]interface{}
