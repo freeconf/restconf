@@ -1,6 +1,9 @@
 package restconf
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -12,8 +15,8 @@ import (
 // SplitAddress takes a complete address and breaks it into pieces according
 // to RESTCONF standards so you can use each piece in appropriate API call
 // Example:
-//   http://server[:port]/restconf[=device]/module:path/here
 //
+//	http://server[:port]/restconf[=device]/module:path/here
 func SplitAddress(fullurl string) (address string, module string, path string, err error) {
 	eoSlashSlash := strings.Index(fullurl, "//") + 2
 	if eoSlashSlash < 2 {
@@ -37,6 +40,20 @@ func SplitAddress(fullurl string) (address string, module string, path string, e
 	return
 }
 
+func SplitUri(uri string) (module string, path string, err error) {
+	colon := strings.IndexRune(uri, ':')
+	if colon < 0 {
+		err = ErrBadAddress
+		return
+	}
+	module = uri[:colon]
+	if slash := strings.LastIndex(module, "/"); slash >= 0 {
+		module = module[slash+1:]
+	}
+	path = uri[colon+1:]
+	return
+}
+
 // FindDeviceIdInUrl picks out device id in URL
 func FindDeviceIdInUrl(addr string) string {
 	segs := strings.SplitAfter(addr, "/restconf=")
@@ -56,8 +73,56 @@ func handleErr(err error, r *http.Request, w http.ResponseWriter) bool {
 		return false
 	}
 	fc.Debug.Printf("web request error [%s] %s %s", r.Method, r.URL, err.Error())
-	http.Error(w, err.Error(), fc.HttpStatusCode(err))
+	msg := err.Error()
+	code := fc.HttpStatusCode(err)
+	if !Compliance.SimpleErrorResponse {
+		errResp := errResponse{
+			Type:    "protocol",
+			Tag:     decodeErrorTag(code, err),
+			Path:    decodeErrorPath(r.RequestURI),
+			Message: msg,
+		}
+		var buff bytes.Buffer
+		fmt.Fprintf(&buff, `{"ietf-restconf:errors":{"error":[`)
+		json.NewEncoder(&buff).Encode(&errResp)
+		fmt.Fprintf(&buff, `]}}`)
+		msg = buff.String()
+	}
+	http.Error(w, msg, code)
 	return true
+}
+
+// https://datatracker.ietf.org/doc/html/rfc8040#section-7
+func decodeErrorTag(code int, _err error) string {
+	// This is bare minimum to return formatted error message response.
+	// but also all that can be done until more error types are defined
+	// beyond the few in github.com/freeconf/yang/fc/err.go or a more
+	// flexible error handling is implemented
+	switch code {
+	case 409:
+		return "in-use"
+	case 400:
+		return "invalid-value"
+	case 401:
+		return "access-denied"
+	}
+	return "operation-failed"
+}
+
+func decodeErrorPath(fullPath string) string {
+	module, path, err := SplitUri(fullPath)
+	if err != nil {
+		fc.Debug.Printf("unexpected path '%s', %s", fullPath, err)
+		return fullPath
+	}
+	return fmt.Sprint(module, ":", path)
+}
+
+type errResponse struct {
+	Type    string `json:"error-type"`
+	Tag     string `json:"error-tag"`
+	Path    string `json:"error-path"`
+	Message string `json:"error-message"`
 }
 
 func ipAddrSplitHostPort(addr string) (host string, port string) {

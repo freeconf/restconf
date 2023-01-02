@@ -113,6 +113,11 @@ func Test_ipAddrSplitHostPort(t *testing.T) {
 	}
 }
 
+func TestDecodeErrorPath(t *testing.T) {
+	fc.AssertEqual(t, "foo:some/path", decodeErrorPath("/restconf/data/foo:some/path"))
+	fc.AssertEqual(t, "bartend:", decodeErrorPath("/restconf/data/bartend:"))
+}
+
 func Test_shift(t *testing.T) {
 	tests := []struct {
 		in              string

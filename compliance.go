@@ -16,16 +16,19 @@ var Compliance = ComplianceOptions{}
 // Simplified are the settings pre 2023 before true IETF compliance was
 // attempted. To use this:
 //
-//  restconf.Compliance = restconf.Simplified
+//	restconf.Compliance = restconf.Simplified
 //
-// or you can just set individual settings on restconf.Compliance global variable
+// or you can just set individual settings on restconf.Compliance global variable.
 var Simplified = ComplianceOptions{
 	ServeOperationsUnderData:   true,
 	DisableNotificationWrapper: true,
 	DisableActionWrapper:       true,
+	SimpleErrorResponse:        true,
 }
 
-// ComplianceOptions hold all the compliance settings
+// ComplianceOptions hold all the compliance settings.  If you enable any of these
+// settings, then you run the risk of not being complatible with other RESTCONF
+// implementations
 type ComplianceOptions struct {
 
 	// allow rpc to serve under /restconf/data/{module:}/{rpc} which while intuative and
@@ -40,4 +43,8 @@ type ComplianceOptions struct {
 	// IETF rpc/action inputs and outputs are wrapped with extra container
 	// https://datatracker.ietf.org/doc/html/rfc8040#section-6.
 	DisableActionWrapper bool
+
+	// Errors have a specific structure
+	// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.3
+	SimpleErrorResponse bool
 }
