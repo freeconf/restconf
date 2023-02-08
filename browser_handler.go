@@ -214,6 +214,9 @@ func readInput(r *http.Request, a *meta.Rpc) (node.Node, error) {
 	if isMultiPartForm(r.Header) {
 		return formNode(r)
 	} else if Compliance.DisableActionWrapper {
+		if r.ContentLength == 0 {
+			return nil, nil
+		}
 		return nodeutil.ReadJSONIO(r.Body), nil
 	}
 
