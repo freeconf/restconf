@@ -55,17 +55,6 @@ func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWrite
 		if handleErr(err, r, w) {
 			return
 		}
-		if hndlr.allowOperationsFlag != allowOperationsAny {
-			isOperation := r.Method == "POST" && meta.IsAction(sel.Meta()) && sel.Path.Len() == 2
-			if hndlr.allowOperationsFlag == allowOperationsOnly && !isOperation {
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return
-			}
-			if hndlr.allowOperationsFlag == allowOperationsNone && isOperation {
-				http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-				return
-			}
-		}
 		switch r.Method {
 		case "DELETE":
 			// CRUD - Delete
