@@ -1,6 +1,6 @@
 # ![FreeCONF](https://s3.amazonaws.com/freeconf-static/freeconf-no-wrench.svg)
 
-For more information about this project, [see wiki](https://github.com/freeconf/restconf/wiki).
+For more information about this project, [see wiki](https://freeconf.org/).
 
 # RESTCONF client and server library
 
@@ -29,8 +29,8 @@ go get -u github.com/freeconf/yang
 5. Support RBAC (Roll Based Access and Control) for mangagement operations without any code change
 6. Build web-based management interfaces without needing any extra service
 7. Use call-home to build, automatic inventory database
-8.  Wrap messy integration APIs to other systems
-9.  Track exact changes to APIs for semantic versioning
+8. Wrap messy integration APIs to other systems
+9. Track exact changes to APIs for semantic versioning
 
 Once you get started, there are a surprising number of possibilities including non-manamgent APIs, file parsers, DB schema generation, ...
 
@@ -186,8 +186,21 @@ You will see a warning about HTTP2, but you can ignore that.  Once you install a
 #### Reset odometer
 `curl -XPOST http://localhost:8080/restconf/data/car:reset`
 
+## Compliance with RFC
+
+Interop is important, include proper headers and all input and output will be in strict compliance w/RFC.  Major differences is namespaced JSON and slightly different base path for RPCs.  You can disallow non-compliance in API.
+
+`curl -H 'Accept:application/yang-data+json' http://localhost:8080/restconf/data/car:`
+
+```json
+{"car:speed":99,"car:miles":3626}
+```
+
+`curl -H 'Accept:application/yang-data+json' http://localhost:8080/restconf/operations/car:reset`
+
+
 ## Resources
-* [Wiki](https://github.com/freeconf/restconf/wiki)
+* [Docs](https://freeconf.org/docs/)
 * [Discussions](https://github.com/freeconf/restconf/discussions)
 * [Issues](https://github.com/freeconf/restconf/issues)
 

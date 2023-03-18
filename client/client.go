@@ -28,7 +28,8 @@ import (
 // this in a node.Browser context would not know the difference from a remote or local device
 // with one minor exceptions. Peek() wouldn't work.
 type Client struct {
-	YangPath source.Opener
+	YangPath  source.Opener
+	Complance restconf.ComplianceOptions
 }
 
 func ProtocolHandler(ypath source.Opener) device.ProtocolHandler {
@@ -70,7 +71,7 @@ func NewAddress(urlAddr string) (Address, error) {
 	}, nil
 }
 
-func (self Client) NewDevice(url string) (device.Device, error) {
+func (factory Client) NewDevice(url string) (device.Device, error) {
 	address, err := NewAddress(url)
 	if err != nil {
 		return nil, err
@@ -83,24 +84,25 @@ func (self Client) NewDevice(url string) (device.Device, error) {
 		},
 	}
 	remoteSchemaPath := httpStream{
-		ypath:  self.YangPath,
+		ypath:  factory.YangPath,
 		client: httpClient,
 		url:    address.Schema,
 	}
 	c := &client{
 		address:    address,
-		yangPath:   self.YangPath,
-		schemaPath: source.Any(self.YangPath, remoteSchemaPath.OpenStream),
+		yangPath:   factory.YangPath,
+		schemaPath: source.Any(factory.YangPath, remoteSchemaPath.OpenStream),
 		client:     httpClient,
+		compliance: factory.Complance,
 	}
-	d := &clientNode{support: c, device: address.DeviceId}
-	m := parser.RequireModule(self.YangPath, "ietf-yang-library")
+	d := &clientNode{support: c, device: address.DeviceId, compliance: c.compliance}
+	m := parser.RequireModule(factory.YangPath, "ietf-yang-library")
 	b := node.NewBrowser(m, d.node())
 	modules, err := device.LoadModules(b, remoteSchemaPath)
-	fc.Debug.Printf("loaded modules %v", modules)
 	if err != nil {
 		return nil, fmt.Errorf("could not load modules. %s", err)
 	}
+	fc.Debug.Printf("loaded modules %v", modules)
 	c.modules = modules
 	return c, nil
 }
@@ -110,8 +112,8 @@ type client struct {
 	yangPath   source.Opener
 	schemaPath source.Opener
 	client     *http.Client
-	origin     string
 	modules    map[string]*meta.Module
+	compliance restconf.ComplianceOptions
 }
 
 func (c *client) SchemaSource() source.Opener {
@@ -127,7 +129,7 @@ func (c *client) UiSource() source.Opener {
 }
 
 func (c *client) Browser(module string) (*node.Browser, error) {
-	d := &clientNode{support: c, device: c.address.DeviceId}
+	d := &clientNode{support: c, device: c.address.DeviceId, compliance: c.compliance}
 	m, err := c.module(module)
 	if err != nil {
 		return nil, err
@@ -167,8 +169,13 @@ func (c *client) clientStream(params string, p *node.Path, ctx context.Context) 
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "text/event-stream")
-	fc.Info.Printf("<=> SSE %s", fullUrl)
+	if c.compliance == restconf.Simplified {
+		q := req.URL.Query()
+		q.Add(restconf.SimplifiedComplianceParam, "")
+		req.URL.RawQuery = q.Encode()
+	}
+	req.Header.Set("Accept", restconf.TextStreamMimeType)
+	fc.Debug.Printf("<=> SSE %s", fullUrl)
 	stream := make(chan streamEvent)
 	go func() {
 		resp, err := c.client.Do(req)
@@ -188,7 +195,7 @@ func (c *client) clientStream(params string, p *node.Path, ctx context.Context) 
 				var vals map[string]interface{}
 				err := json.Unmarshal(event, &vals)
 				if err == nil {
-					if !restconf.Compliance.DisableNotificationWrapper {
+					if !c.compliance.DisableNotificationWrapper {
 						payload, found := vals["ietf-restconf:notification"].(map[string]interface{})
 						if !found {
 							err = errors.New("SSE message missing ietf-restconf:notification wrapper")
@@ -270,22 +277,26 @@ func (c *client) clientDo(method string, params string, p *node.Path, payload io
 	mod := meta.RootModule(p.Meta)
 	fullUrl := fmt.Sprint(c.address.Data, mod.Ident(), ":", p.StringNoModule())
 
-	if meta.IsAction(p.Meta) && !restconf.Compliance.ServeOperationsUnderData {
+	if meta.IsAction(p.Meta) && !c.compliance.AllowRpcUnderData {
 		isRootLevelRpc := (p.Meta.Parent() == mod)
 		if isRootLevelRpc {
 			fullUrl = fmt.Sprint(c.address.Operations, mod.Ident(), ":", p.StringNoModule())
 		}
 	}
-
 	if params != "" {
 		fullUrl = fmt.Sprint(fullUrl, "?", params)
 	}
 	if req, err = http.NewRequest(method, fullUrl, payload); err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	fc.Info.Printf("=> %s %s", method, fullUrl)
+	if c.compliance == restconf.Simplified {
+		req.Header.Set("Content-Type", restconf.PlainJsonMimeType)
+		req.Header.Set("Accept", restconf.PlainJsonMimeType)
+	} else {
+		req.Header.Set("Content-Type", restconf.YangDataJsonMimeType)
+		req.Header.Set("Accept", restconf.YangDataJsonMimeType)
+	}
+	fc.Debug.Printf("=> %s %s", method, fullUrl)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err

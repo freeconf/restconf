@@ -45,7 +45,7 @@ type Server struct {
 
 	// allow rpc to serve under /restconf/data/{module:}/{rpc} which while intuative and
 	// original design, it is not in compliance w/RESTCONF spec
-	AllowLegacyCompliance bool
+	OnlyStrictCompliance bool
 }
 
 var ErrBadAddress = errors.New("expected format: http://server/restconf[=device]/operation/module:path")
@@ -54,9 +54,8 @@ type RequestFilter func(ctx context.Context, w http.ResponseWriter, r *http.Requ
 
 func NewServer(d *device.Local) *Server {
 	m := &Server{
-		notifiers:             list.New(),
-		ypath:                 d.SchemaSource(),
-		AllowLegacyCompliance: Compliance.ServeOperationsUnderData,
+		notifiers: list.New(),
+		ypath:     d.SchemaSource(),
 	}
 	m.ServeDevice(d)
 
@@ -71,35 +70,55 @@ func NewServer(d *device.Local) *Server {
 	return m
 }
 
-func (self *Server) Close() error {
-	if self.Web == nil {
+func (srv *Server) Close() error {
+	if srv.Web == nil {
 		return nil
 	}
-	err := self.Web.Server.Close()
-	self.Web = nil
+	err := srv.Web.Server.Close()
+	srv.Web = nil
 	return err
 }
 
-func (self *Server) ModuleAddress(m *meta.Module) string {
+func (srv *Server) ModuleAddress(m *meta.Module) string {
 	return fmt.Sprint("schema/", m.Ident(), ".yang")
 }
 
-func (self *Server) DeviceAddress(id string, d device.Device) string {
+func (srv *Server) DeviceAddress(id string, d device.Device) string {
 	return fmt.Sprint("/restconf=", id)
 }
 
-func (self *Server) ServeDevices(m device.Map) error {
-	self.devices = m
+func (srv *Server) ServeDevices(m device.Map) error {
+	srv.devices = m
 	return nil
 }
 
-func (self *Server) ServeDevice(d device.Device) error {
-	self.main = d
+func (srv *Server) ServeDevice(d device.Device) error {
+	srv.main = d
 	return nil
 }
 
-func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+func (srv *Server) determineCompliance(r *http.Request) ComplianceOptions {
+	if srv.OnlyStrictCompliance {
+		return Strict
+	}
+	if r.URL.Query().Has(SimplifiedComplianceParam) {
+		return Simplified
+	}
+	contentType := r.Header.Get("Content-Type")
+	acceptType := r.Header.Get("Accept")
+	if contentType == YangDataJsonMimeType || acceptType == YangDataJsonMimeType {
+		return Strict
+	}
+	if acceptType == TextStreamMimeType {
+		return Strict
+	}
+	return Simplified
+}
+
+func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	compliance := srv.determineCompliance(r)
+	fc.Debug.Printf("compliance %s", compliance)
+	ctx := context.WithValue(context.Background(), ComplianceContextKey, compliance)
 	if fc.DebugLogEnabled() {
 		fc.Debug.Printf("%s %s", r.Method, r.URL)
 		if r.Body != nil {
@@ -115,10 +134,10 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	for _, f := range self.Filters {
+	for _, f := range srv.Filters {
 		var err error
 		if ctx, err = f(ctx, w, r); err != nil {
-			handleErr(err, r, w)
+			handleErr(compliance, err, r, w)
 			return
 		}
 	}
@@ -134,92 +153,90 @@ func (self *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "OPTIONS":
 			return
 		case "GET":
-			if len(self.webApps) > 0 {
-				http.Redirect(w, r, self.webApps[0].endpoint, http.StatusMovedPermanently)
+			if len(srv.webApps) > 0 {
+				http.Redirect(w, r, srv.webApps[0].endpoint, http.StatusMovedPermanently)
 				return
 			}
 		}
 	}
 
 	op1, deviceId, p := shiftOptionalParamWithinSegment(r.URL, '=', '/')
-	device, err := self.findDevice(deviceId)
+	device, err := srv.findDevice(deviceId)
 	if err != nil {
-		handleErr(err, r, w)
+		handleErr(compliance, err, r, w)
 		return
 	}
 	switch op1 {
 	case ".ver":
-		w.Write([]byte(self.Ver))
+		w.Write([]byte(srv.Ver))
 		return
 	case ".well-known":
-		self.serveStaticRoute(w, r)
+		srv.serveStaticRoute(w, r)
 		return
 	case "restconf":
 		op2, p := shift(p, '/')
 		r.URL = p
 		switch op2 {
-		case "data", "streams":
-			self.serveData(ctx, device, w, r)
+		case "data":
+			srv.serve(compliance, ctx, device, w, r, endpointData)
+		case "streams":
+			srv.serve(compliance, ctx, device, w, r, endpointStreams)
+		case "operations":
+			srv.serve(compliance, ctx, device, w, r, endpointOperations)
 		case "ui":
-			self.serveStreamSource(r, w, device.UiSource(), r.URL.Path)
+			srv.serveStreamSource(compliance, r, w, device.UiSource(), r.URL.Path)
 		case "schema":
 			// Hack - parse accept header to get proper content type
 			accept := r.Header.Get("Accept")
 			fc.Debug.Printf("accept %s", accept)
 			if strings.Contains(accept, "/json") {
-				self.serveSchema(ctx, w, r, device.SchemaSource())
+				srv.serveSchema(compliance, ctx, w, r, device.SchemaSource())
 			} else {
-				self.serveStreamSource(r, w, device.SchemaSource(), r.URL.Path)
+				srv.serveStreamSource(compliance, r, w, device.SchemaSource(), r.URL.Path)
 			}
-		case "operations":
-			self.serveOperations(ctx, device, w, r)
 		default:
-			handleErr(ErrBadAddress, r, w)
+			handleErr(compliance, ErrBadAddress, r, w)
 		}
 		return
 	}
-	if self.handleWebApp(w, r, op1, p.Path) {
+	if srv.handleWebApp(w, r, op1, p.Path) {
 		return
 	}
-	if self.UnhandledRequestHandler != nil {
-		self.UnhandledRequestHandler(w, r)
+	if srv.UnhandledRequestHandler != nil {
+		srv.UnhandledRequestHandler(w, r)
 		return
 	}
 }
 
-func (self *Server) serveSchema(ctx context.Context, w http.ResponseWriter, r *http.Request, ypath source.Opener) {
+const (
+	endpointData = iota
+	endpointOperations
+	endpointStreams
+	endpointSchema
+)
+
+func (srv *Server) serveSchema(compliance ComplianceOptions, ctx context.Context, w http.ResponseWriter, r *http.Request, ypath source.Opener) {
 	modName, p := shift(r.URL, '/')
 	r.URL = p
 	m, err := parser.LoadModule(ypath, modName)
 	if err != nil {
-		handleErr(err, r, w)
+		handleErr(compliance, err, r, w)
 		return
 	}
 	ylib, err := parser.LoadModule(ypath, "fc-yang")
 	if err != nil {
-		handleErr(err, r, w)
+		handleErr(compliance, err, r, w)
 		return
 	}
 	b := nodeutil.Schema(ylib, m)
 	hndlr := &browserHandler{browser: b}
-	hndlr.ServeHTTP(ctx, w, r)
+	hndlr.ServeHTTP(compliance, ctx, w, r, endpointSchema)
 }
 
-func (self *Server) serveOperations(ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request) {
-	if hndlr, p := self.shiftBrowserHandler(r, d, w, r.URL); hndlr != nil {
+func (srv *Server) serve(compliance ComplianceOptions, ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request, endpointId int) {
+	if hndlr, p := srv.shiftBrowserHandler(compliance, r, d, w, r.URL); hndlr != nil {
 		r.URL = p
-		hndlr.allowOperationsFlag = allowOperationsOnly
-		hndlr.ServeHTTP(ctx, w, r)
-	}
-}
-
-func (self *Server) serveData(ctx context.Context, d device.Device, w http.ResponseWriter, r *http.Request) {
-	if hndlr, p := self.shiftBrowserHandler(r, d, w, r.URL); hndlr != nil {
-		r.URL = p
-		if !self.AllowLegacyCompliance {
-			hndlr.allowOperationsFlag = allowOperationsNone
-		}
-		hndlr.ServeHTTP(ctx, w, r)
+		hndlr.ServeHTTP(compliance, ctx, w, r, endpointId)
 	}
 }
 
@@ -229,8 +246,8 @@ type webApp struct {
 	homePage string
 }
 
-func (self *Server) RegisterWebApp(homeDir string, homePage string, endpoint string) {
-	self.webApps = append(self.webApps, webApp{
+func (srv *Server) RegisterWebApp(homeDir string, homePage string, endpoint string) {
+	srv.webApps = append(srv.webApps, webApp{
 		endpoint: endpoint,
 		homeDir:  homeDir,
 		homePage: homePage,
@@ -240,8 +257,8 @@ func (self *Server) RegisterWebApp(homeDir string, homePage string, endpoint str
 // Serve web app according to SPA conventions where you serve static assets if
 // they exist but if they don't assume, the URL is going to be interpretted
 // in browser as route path.
-func (self *Server) handleWebApp(w http.ResponseWriter, r *http.Request, endpoint string, path string) bool {
-	for _, wap := range self.webApps {
+func (srv *Server) handleWebApp(w http.ResponseWriter, r *http.Request, endpoint string, path string) bool {
+	for _, wap := range srv.webApps {
 
 		if endpoint == wap.endpoint {
 
@@ -253,14 +270,15 @@ func (self *Server) handleWebApp(w http.ResponseWriter, r *http.Request, endpoin
 			}
 
 			// redirect to root path so URL is correct in browser
-			self.serveWebApp(w, r, wap, path)
+			srv.serveWebApp(w, r, wap, path)
 			return true
 		}
 	}
 	return false
 }
 
-func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webApp, path string) {
+func (srv *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webApp, path string) {
+	compliance := Simplified
 	var rdr *os.File
 	useHomePage := false
 	if path == "" {
@@ -272,7 +290,7 @@ func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webA
 			if os.IsNotExist(ferr) {
 				useHomePage = true
 			} else {
-				handleErr(ferr, r, w)
+				handleErr(compliance, ferr, r, w)
 				return
 			}
 		} else {
@@ -288,9 +306,9 @@ func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webA
 		rdr, ferr = os.Open(filepath.Join(wap.homeDir, wap.homePage))
 		if ferr != nil {
 			if os.IsNotExist(ferr) {
-				handleErr(fc.NotFoundError, r, w)
+				handleErr(compliance, fc.NotFoundError, r, w)
 			} else {
-				handleErr(ferr, r, w)
+				handleErr(compliance, ferr, r, w)
 			}
 			return
 		}
@@ -301,32 +319,32 @@ func (self *Server) serveWebApp(w http.ResponseWriter, r *http.Request, wap webA
 	ctype := mime.TypeByExtension(ext)
 	w.Header().Set("Content-Type", ctype)
 	if _, err := io.Copy(w, rdr); err != nil {
-		handleErr(err, r, w)
+		handleErr(compliance, err, r, w)
 	}
 }
 
-func (self *Server) serveStreamSource(r *http.Request, w http.ResponseWriter, s source.Opener, path string) {
+func (srv *Server) serveStreamSource(compliance ComplianceOptions, r *http.Request, w http.ResponseWriter, s source.Opener, path string) {
 	rdr, err := s(path, "")
 	if err != nil {
-		handleErr(err, r, w)
+		handleErr(compliance, err, r, w)
 		return
 	} else if rdr == nil {
-		handleErr(fc.NotFoundError, r, w)
+		handleErr(compliance, fc.NotFoundError, r, w)
 		return
 	}
 	ext := filepath.Ext(path)
 	ctype := mime.TypeByExtension(ext)
 	w.Header().Set("Content-Type", ctype)
 	if _, err := io.Copy(w, rdr); err != nil {
-		handleErr(err, r, w)
+		handleErr(compliance, err, r, w)
 	}
 }
 
-func (self *Server) findDevice(deviceId string) (device.Device, error) {
+func (srv *Server) findDevice(deviceId string) (device.Device, error) {
 	if deviceId == "" {
-		return self.main, nil
+		return srv.main, nil
 	}
-	device, err := self.devices.Device(deviceId)
+	device, err := srv.devices.Device(deviceId)
 	if err != nil {
 		return nil, err
 	}
@@ -336,38 +354,23 @@ func (self *Server) findDevice(deviceId string) (device.Device, error) {
 	return device, nil
 }
 
-func (self *Server) shiftOperationAndDevice(r *http.Request, w http.ResponseWriter, orig *url.URL) (string, device.Device, *url.URL) {
-	//  operation[=deviceId]/...
-	op, deviceId, p := shiftOptionalParamWithinSegment(orig, '=', '/')
-	if op == "" {
-		handleErr(fmt.Errorf("%w. no operation found in path", fc.NotFoundError), r, w)
-		return op, nil, orig
-	}
-	device, err := self.findDevice(deviceId)
-	if err != nil {
-		handleErr(err, r, w)
-		return "", nil, orig
-	}
-	return op, device, p
-}
-
-func (self *Server) shiftBrowserHandler(r *http.Request, d device.Device, w http.ResponseWriter, orig *url.URL) (*browserHandler, *url.URL) {
+func (srv *Server) shiftBrowserHandler(compliance ComplianceOptions, r *http.Request, d device.Device, w http.ResponseWriter, orig *url.URL) (*browserHandler, *url.URL) {
 	if module, p := shift(orig, ':'); module != "" {
 		if browser, err := d.Browser(module); browser != nil {
 			return &browserHandler{
 				browser: browser,
 			}, p
 		} else if err != nil {
-			handleErr(err, r, w)
+			handleErr(compliance, err, r, w)
 			return nil, orig
 		}
 	}
 
-	handleErr(fmt.Errorf("%w. no module found in path", fc.NotFoundError), r, w)
+	handleErr(compliance, fmt.Errorf("%w. no module found in path", fc.NotFoundError), r, w)
 	return nil, orig
 }
 
-func (self *Server) serveStaticRoute(w http.ResponseWriter, r *http.Request) bool {
+func (srv *Server) serveStaticRoute(w http.ResponseWriter, r *http.Request) bool {
 	_, p := shift(r.URL, '/')
 	op, _ := shift(p, '/')
 	switch op {

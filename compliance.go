@@ -1,5 +1,7 @@
 package restconf
 
+import "fmt"
+
 // Compliance is the global variable that sets the default behavior if the
 // FreeCONF RESTCONF library.
 //
@@ -8,10 +10,7 @@ package restconf
 // This sets just the default behavior of data structures, each individual
 // instance should allow for controlling the compliance of that instance should
 // you need to have instances in different modes at the same time.
-//
-// If you wish change default compliance, be sure to do it at the beginning of your
-// to application before any objects are constructed.
-var Compliance = ComplianceOptions{}
+var Strict = ComplianceOptions{}
 
 // Simplified are the settings pre 2023 before true IETF compliance was
 // attempted. To use this:
@@ -20,7 +19,7 @@ var Compliance = ComplianceOptions{}
 //
 // or you can just set individual settings on restconf.Compliance global variable.
 var Simplified = ComplianceOptions{
-	ServeOperationsUnderData:   true,
+	AllowRpcUnderData:          true,
 	DisableNotificationWrapper: true,
 	DisableActionWrapper:       true,
 	SimpleErrorResponse:        true,
@@ -31,9 +30,9 @@ var Simplified = ComplianceOptions{
 // implementations
 type ComplianceOptions struct {
 
-	// allow rpc to serve under /restconf/data/{module:}/{rpc} which while intuative and
-	// original design, it is not in compliance w/RESTCONF spec
-	ServeOperationsUnderData bool
+	// allow rpc to serve under /restconf/data/{module:}/{rpc} which while intuative
+	// it is not in compliance w/RESTCONF spec
+	AllowRpcUnderData bool
 
 	// IETF notification messages with extra data including
 	// event time and ietf-restconf:notfication container
@@ -47,4 +46,14 @@ type ComplianceOptions struct {
 	// Errors have a specific structure
 	// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.3
 	SimpleErrorResponse bool
+}
+
+func (compliance ComplianceOptions) String() string {
+	if compliance == Simplified {
+		return "simplified"
+	}
+	if compliance == Strict {
+		return "strict"
+	}
+	return fmt.Sprintf("mixed %#v", compliance)
 }

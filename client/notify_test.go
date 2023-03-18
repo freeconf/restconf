@@ -1,12 +1,14 @@
 package client
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/freeconf/restconf"
 	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/parser"
@@ -17,15 +19,15 @@ func TestClientNotif(t *testing.T) {
 	ypath := source.Path("../testdata:../yang")
 	m := parser.RequireModule(ypath, "x")
 	var s *restconf.Server
-	send := make(chan string, 1)
+	send := make(chan string)
 	n := &nodeutil.Basic{
 		OnNotify: func(r node.NotifyRequest) (node.NotifyCloser, error) {
 			go func() {
-				for s := range send {
-					r.Send(nodeutil.ReflectChild(map[string]interface{}{
-						"z": s,
-					}))
-				}
+				s := <-send
+				fmt.Println("sending message")
+				r.Send(nodeutil.ReflectChild(map[string]interface{}{
+					"z": s,
+				}))
 			}()
 			return func() error {
 				return nil
@@ -49,32 +51,41 @@ func TestClientNotif(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// wait for server to startup
 	<-time.After(2 * time.Second)
-	factory := Client{YangPath: ypath}
-	c, err := factory.NewDevice("http://localhost:9081/restconf")
-	if err != nil {
-		t.Fatal(err)
-	}
-	bClient, err := c.Browser("x")
-	if err != nil {
-		t.Fatal(err)
-	}
-	send <- "original session"
-	recv := make(chan string, 1)
-	sub, err := bClient.Root().Find("y").Notifications(func(msg node.Notification) {
-		actual, err := nodeutil.WriteJSON(msg.Event)
+
+	recv := make(chan string)
+
+	testClient := func(compliance restconf.ComplianceOptions) error {
+		factory := Client{YangPath: ypath, Complance: compliance}
+		dev, err := factory.NewDevice("http://localhost:9081/restconf")
 		if err != nil {
-			t.Fatal(err)
+			return err
 		}
-		recv <- actual
-	})
-	if err != nil {
-		t.Fatal(err)
+		b, err := dev.Browser("x")
+		if err != nil {
+			return err
+		}
+		sub, err := b.Root().Find("y").Notifications(func(msg node.Notification) {
+			fmt.Println("receiving message")
+			actual, err := nodeutil.WriteJSON(msg.Event)
+			if err != nil {
+				panic(err)
+			}
+			recv <- actual
+		})
+		if err != nil {
+			return err
+		}
+		send <- "original session"
+		actual := <-recv
+		if actual != `{"x:z":"original session"}` {
+			return fmt.Errorf("not expected output %s", actual)
+		}
+		sub()
+		return nil
 	}
-	msg := <-recv
-	if msg != `{"x:z":"original session"}` {
-		t.Error(msg)
-	}
-	sub()
-	s.Close()
+
+	fc.AssertEqual(t, nil, testClient(restconf.Simplified))
+	fc.AssertEqual(t, nil, testClient(restconf.Strict))
 }

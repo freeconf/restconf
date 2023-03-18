@@ -16,15 +16,8 @@ import (
 	"github.com/freeconf/yang/nodeutil"
 )
 
-const (
-	allowOperationsAny = iota
-	allowOperationsOnly
-	allowOperationsNone
-)
-
 type browserHandler struct {
-	browser             *node.Browser
-	allowOperationsFlag int
+	browser *node.Browser
 }
 
 var subscribeCount int
@@ -35,7 +28,19 @@ type ProxyContextKey string
 
 var RemoteIpAddressKey = ProxyContextKey("FC_REMOTE_IP")
 
-func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+const YangDataJsonMimeType = "application/yang-data+json"
+
+const TextStreamMimeType = "text/event-stream"
+
+const PlainJsonMimeType = "application/json"
+
+const SimplifiedComplianceParam = "simplified"
+
+type ComplianceContextKeyType string
+
+var ComplianceContextKey = ComplianceContextKeyType("RESTCONF_COMPLIANCE")
+
+func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context.Context, w http.ResponseWriter, r *http.Request, endpointId int) {
 	var err error
 	var payload node.Node
 	var cancel context.CancelFunc
@@ -52,18 +57,28 @@ func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWrite
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-		if handleErr(err, r, w) {
+		if handleErr(compliance, err, r, w) {
 			return
+		}
+		isRpcOrAction := r.Method == "POST" && meta.IsAction(sel.Meta())
+		if !isRpcOrAction && endpointId == endpointOperations {
+			http.Error(w, "{+restconf}/operations is only intended for rpcs", http.StatusBadRequest)
+		} else if isRpcOrAction && !compliance.AllowRpcUnderData && endpointId == endpointData {
+			isAction := sel.Path.Len() > 2 // otherwise an action and ok
+			if !isAction {
+				http.Error(w, "rpcs are located at {+restconf}/operations not {+restconf}/data", http.StatusBadRequest)
+				return
+			}
 		}
 		switch r.Method {
 		case "DELETE":
 			// CRUD - Delete
 			err = sel.Delete()
 		case "GET":
-			// compliance note : decided to support notifictions on get by devilering
+			// compliance note : decided to support notifictions on get by delivering
 			// first event, then closing connection.  Spec calls for SSE
 			if meta.IsNotification(sel.Meta()) {
-				hdr.Set("Content-Type", "text/event-stream")
+				hdr.Set("Accept", TextStreamMimeType)
 				hdr.Set("Cache-Control", "no-cache")
 				hdr.Set("Connection", "keep-alive")
 				hdr.Set("X-Accel-Buffering", "no")
@@ -98,7 +113,7 @@ func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWrite
 					// According to SSE Spec, each event needs following format:
 					// data: {payload}\n\n
 					fmt.Fprint(&buf, "data: ")
-					if !Compliance.DisableNotificationWrapper {
+					if !compliance.DisableNotificationWrapper {
 						etime := n.EventTime.Format(EventTimeFormat)
 						fmt.Fprintf(&buf, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
 					}
@@ -107,7 +122,7 @@ func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWrite
 						errOnSend <- err
 						return
 					}
-					if !Compliance.DisableNotificationWrapper {
+					if !compliance.DisableNotificationWrapper {
 						fmt.Fprint(&buf, "}}")
 					}
 					fmt.Fprint(&buf, "\n\n")
@@ -136,7 +151,7 @@ func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWrite
 			var input node.Node
 			input, err = requestNode(r)
 			if err != nil {
-				handleErr(err, r, w)
+				handleErr(compliance, err, r, w)
 				return
 			}
 			err = sel.UpsertFrom(input).LastErr
@@ -146,15 +161,15 @@ func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWrite
 				a := sel.Meta().(*meta.Rpc)
 				var input node.Node
 				if a.Input() != nil {
-					if input, err = readInput(r, a); err != nil {
-						handleErr(err, r, w)
+					if input, err = readInput(compliance, r, a); err != nil {
+						handleErr(compliance, err, r, w)
 						return
 					}
 				}
 				if outputSel := sel.Action(input); !outputSel.IsNil() && a.Output() != nil {
 					w.Header().Set("Content-Type", mime.TypeByExtension(".json"))
-					if err = sendOutput(w, outputSel, a); err != nil {
-						handleErr(err, r, w)
+					if err = sendOutput(compliance, w, outputSel, a); err != nil {
+						handleErr(compliance, err, r, w)
 						return
 					}
 				} else {
@@ -175,12 +190,12 @@ func (hndlr *browserHandler) ServeHTTP(ctx context.Context, w http.ResponseWrite
 	}
 
 	if err != nil {
-		handleErr(err, r, w)
+		handleErr(compliance, err, r, w)
 	}
 }
 
-func sendOutput(out io.Writer, output node.Selection, a *meta.Rpc) error {
-	if !Compliance.DisableActionWrapper {
+func sendOutput(compliance ComplianceOptions, out io.Writer, output node.Selection, a *meta.Rpc) error {
+	if !compliance.DisableActionWrapper {
 		// IETF formated output
 		// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
 		mod := meta.OriginalModule(a).Ident()
@@ -190,7 +205,7 @@ func sendOutput(out io.Writer, output node.Selection, a *meta.Rpc) error {
 	}
 	err := output.InsertInto(nodeutil.NewJSONWtr(out).Node()).LastErr
 
-	if !Compliance.DisableActionWrapper {
+	if !compliance.DisableActionWrapper {
 		if _, err := fmt.Fprintf(out, "}"); err != nil {
 			return err
 		}
@@ -198,14 +213,11 @@ func sendOutput(out io.Writer, output node.Selection, a *meta.Rpc) error {
 	return err
 }
 
-func readInput(r *http.Request, a *meta.Rpc) (node.Node, error) {
+func readInput(compliance ComplianceOptions, r *http.Request, a *meta.Rpc) (node.Node, error) {
 	// not part of spec, custom feature to allow for form uploads
 	if isMultiPartForm(r.Header) {
 		return formNode(r)
-	} else if Compliance.DisableActionWrapper {
-		if r.ContentLength == 0 {
-			return nil, nil
-		}
+	} else if compliance.DisableActionWrapper {
 		return nodeutil.ReadJSONIO(r.Body), nil
 	}
 

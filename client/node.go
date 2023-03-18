@@ -20,13 +20,14 @@ import (
 )
 
 type clientNode struct {
-	support clientSupport
-	params  string
-	read    node.Node
-	edit    node.Node
-	method  string
-	changes node.Node
-	device  string
+	support    clientSupport
+	params     string
+	read       node.Node
+	edit       node.Node
+	method     string
+	changes    node.Node
+	device     string
+	compliance restconf.ComplianceOptions
 }
 
 // clientSupport is interface between Device and driver.  Factored out as part of
@@ -221,7 +222,7 @@ func (cn *clientNode) request(method string, p *node.Path, in node.Selection) (n
 func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node, error) {
 	var payload bytes.Buffer
 	if !in.IsNil() {
-		if !restconf.Compliance.DisableActionWrapper {
+		if !cn.compliance.DisableActionWrapper {
 			// IETF formated input
 			// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.1
 
@@ -231,7 +232,7 @@ func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node,
 		if err := in.InsertInto(nodeutil.NewJSONWtr(&payload).Node()).LastErr; err != nil {
 			return nil, err
 		}
-		if !restconf.Compliance.DisableActionWrapper {
+		if !cn.compliance.DisableActionWrapper {
 			fmt.Fprintf(&payload, "}")
 		}
 	}
@@ -240,7 +241,7 @@ func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node,
 		return nil, err
 	}
 	if resp != nil {
-		if !restconf.Compliance.DisableActionWrapper {
+		if !cn.compliance.DisableActionWrapper {
 			// IETF formated input
 			// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
 			var vals map[string]interface{}

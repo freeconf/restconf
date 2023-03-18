@@ -66,10 +66,9 @@ func TestServer(t *testing.T) {
 	r, _ = client.Post(addr+"/restconf/operations/car:rotateTires", contentType, nil)
 	fc.AssertEqual(t, 200, r.StatusCode)
 
-	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", contentType, nil)
+	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", YangDataJsonMimeType, nil)
 	fc.AssertEqual(t, 400, r.StatusCode)
 
-	s.AllowLegacyCompliance = true
 	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", contentType, nil)
 	fc.AssertEqual(t, 200, r.StatusCode)
 

@@ -49,7 +49,7 @@ func TestForm(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b := node.NewBrowser(m, formDummyNode(t))
 		x := m.Actions()["x"]
-		input, err := readInput(r, x)
+		input, err := readInput(Strict, r, x)
 		chkErr(t, err)
 		resp := b.Root().Find("x").Action(input)
 		chkErr(t, resp.LastErr)
@@ -109,7 +109,7 @@ func formDummyNode(t *testing.T) node.Node {
 				t.Error(actual)
 			}
 			//defer rdr.Close()
-			fmt.Printf(string(actual))
+			fmt.Print(string(actual))
 			return nil, nil
 		},
 	}

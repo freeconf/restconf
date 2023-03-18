@@ -68,14 +68,14 @@ func FindDeviceIdInUrl(addr string) string {
 // otherwise go will emit error that you're trying to change header when
 // it's too late.  i think harmless, but still not what you intended and
 // actuall error is eatten.
-func handleErr(err error, r *http.Request, w http.ResponseWriter) bool {
+func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.ResponseWriter) bool {
 	if err == nil {
 		return false
 	}
 	fc.Debug.Printf("web request error [%s] %s %s", r.Method, r.URL, err.Error())
 	msg := err.Error()
 	code := fc.HttpStatusCode(err)
-	if !Compliance.SimpleErrorResponse {
+	if !compliance.SimpleErrorResponse {
 		errResp := errResponse{
 			Type:    "protocol",
 			Tag:     decodeErrorTag(code, err),
