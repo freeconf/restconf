@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/freeconf/restconf"
 	"github.com/freeconf/restconf/device"
+	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
 	"github.com/freeconf/yang/source"
@@ -37,6 +39,7 @@ func manage(car *Car) node.Node {
 			switch req.Meta.Ident() {
 			case "reset":
 				car.Miles = 0
+				return nil, fmt.Errorf("no no no. %w", fc.UnauthorizedError)
 			}
 			return nil, nil
 		},
