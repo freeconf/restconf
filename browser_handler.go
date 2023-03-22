@@ -166,7 +166,12 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 						return
 					}
 				}
-				if outputSel := sel.Action(input); !outputSel.IsNil() && a.Output() != nil {
+				outputSel := sel.Action(input)
+				if outputSel.LastErr != nil {
+					handleErr(compliance, outputSel.LastErr, r, w)
+					return
+				}
+				if !outputSel.IsNil() && a.Output() != nil {
 					w.Header().Set("Content-Type", mime.TypeByExtension(".json"))
 					if err = sendOutput(compliance, w, outputSel, a); err != nil {
 						handleErr(compliance, err, r, w)
