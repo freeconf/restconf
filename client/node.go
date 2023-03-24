@@ -208,7 +208,7 @@ func jsonNode(in io.ReadCloser) (node.Node, error) {
 func (cn *clientNode) request(method string, p *node.Path, in node.Selection) (node.Node, error) {
 	var payload bytes.Buffer
 	if !in.IsNil() {
-		if err := in.InsertInto(nodeutil.NewJSONWtr(&payload).Node()).LastErr; err != nil {
+		if err := in.InsertInto(jsonWtr(cn.compliance, &payload)).LastErr; err != nil {
 			return nil, err
 		}
 	}
@@ -217,6 +217,11 @@ func (cn *clientNode) request(method string, p *node.Path, in node.Selection) (n
 		return nil, err
 	}
 	return jsonNode(resp)
+}
+
+func jsonWtr(compliance restconf.ComplianceOptions, out io.Writer) node.Node {
+	wtr := &nodeutil.JSONWtr{Out: out, QualifyNamespace: compliance.QualifyNamespaceDisabled}
+	return wtr.Node()
 }
 
 func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node, error) {
@@ -228,8 +233,7 @@ func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node,
 
 			fmt.Fprintf(&payload, `{"%s:input":`, meta.OriginalModule(p.Meta).Ident())
 		}
-
-		if err := in.InsertInto(nodeutil.NewJSONWtr(&payload).Node()).LastErr; err != nil {
+		if err := in.InsertInto(jsonWtr(cn.compliance, &payload)).LastErr; err != nil {
 			return nil, err
 		}
 		if !cn.compliance.DisableActionWrapper {

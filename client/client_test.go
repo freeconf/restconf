@@ -39,6 +39,7 @@ func TestClient(t *testing.T) {
 	fc.RequireEqual(t, nil, local.ApplyStartupConfig(strings.NewReader(cfg)))
 
 	testClient := func(compliance restconf.ComplianceOptions) error {
+		t.Logf("compliance %s", compliance)
 		c := Client{YangPath: ypath, Complance: compliance}
 		dev, err := c.NewDevice("http://localhost:10999/restconf")
 		fc.RequireEqual(t, nil, err)

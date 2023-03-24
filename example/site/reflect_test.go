@@ -59,7 +59,7 @@ module anyName {
 
 	actual, err := nodeutil.WriteJSON(root)
 	fc.AssertEqual(t, nil, err)
-	fc.AssertEqual(t, `{"anyName:lastModified":1000}`, actual)
+	fc.AssertEqual(t, `{"lastModified":1000}`, actual)
 }
 
 type reflectMap struct {
@@ -124,6 +124,6 @@ module anyName {
 	fc.AssertEqual(t, nil, err)
 	roundtrip, err := nodeutil.WriteJSON(root)
 	fc.AssertEqual(t, nil, err)
-	expected := `{"anyName:info":{"name":"joe","more":{"size":100},"stuff":[{"anything":"one"}]}}`
+	expected := `{"info":{"name":"joe","more":{"size":100},"stuff":[{"anything":"one"}]}}`
 	fc.AssertEqual(t, expected, roundtrip)
 }

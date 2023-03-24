@@ -71,5 +71,5 @@ module anyName {
 	root := b.Root()
 	actual, err := nodeutil.WriteJSON(root)
 	fc.AssertEqual(t, nil, err)
-	fc.AssertEqual(t, `{"anyName:location":"0,0"}`, actual)
+	fc.AssertEqual(t, `{"location":"0,0"}`, actual)
 }

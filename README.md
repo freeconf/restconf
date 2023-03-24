@@ -12,7 +12,7 @@ FreeCONF plays an important role in the greater mission to browse, inspect and p
 
 # Requirements
 
-Requires Go version 1.18 or greater.
+Requires Go version 1.20 or greater.
 
 # Getting the source
 

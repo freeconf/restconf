@@ -1,5 +1,5 @@
 {
-"ietf-yang-library:modules-state":{
+"modules-state":{
   "module":[
     {
       "name":"bird",

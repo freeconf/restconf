@@ -79,7 +79,7 @@ func TestClientNotif(t *testing.T) {
 		}
 		send <- "original session"
 		actual := <-recv
-		if actual != `{"x:z":"original session"}` {
+		if actual != `{"z":"original session"}` {
 			return fmt.Errorf("not expected output %s", actual)
 		}
 		sub()

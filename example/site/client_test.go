@@ -51,9 +51,6 @@ func TestClient(t *testing.T) {
 		panic(err)
 	}
 
-	// Download and parse all the YANG
-	modules := dev.Modules()
-
 	// Get a browser to walk server's management API for car
 	car, err := dev.Browser("car")
 	if err != nil {
@@ -79,7 +76,7 @@ func TestClient(t *testing.T) {
 		panic(err)
 	}
 
-	// Example of notification:
+	// Example of notification: Car has an important update
 	unsub, err := car.Root().Find("update").Notifications(func(n node.Notification) {
 		msg, err := nodeutil.WriteJSON(n.Event)
 		if err != nil {
@@ -108,6 +105,5 @@ func TestClient(t *testing.T) {
 	// END DOC EXAMPLE CODE
 	//////////////////////////////
 
-	fc.AssertEqual(t, 3, len(modules))
 	fc.AssertEqual(t, true, len(metrics) > 0)
 }

@@ -117,7 +117,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 						etime := n.EventTime.Format(EventTimeFormat)
 						fmt.Fprintf(&buf, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
 					}
-					err := n.Event.InsertInto(nodeutil.NewJSONWtr(&buf).Node()).LastErr
+					err := n.Event.InsertInto(jsonWtr(compliance, &buf)).LastErr
 					if err != nil {
 						errOnSend <- err
 						return
@@ -144,7 +144,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 			} else {
 				// CRUD - Read
 				hdr.Set("Content-Type", mime.TypeByExtension(".json"))
-				err = sel.InsertInto(nodeutil.NewJSONWtr(w).Node()).LastErr
+				err = sel.InsertInto(jsonWtr(compliance, w)).LastErr
 			}
 		case "PUT":
 			// CRUD - Update
@@ -208,7 +208,7 @@ func sendOutput(compliance ComplianceOptions, out io.Writer, output node.Selecti
 			return err
 		}
 	}
-	err := output.InsertInto(nodeutil.NewJSONWtr(out).Node()).LastErr
+	err := output.InsertInto(jsonWtr(compliance, out)).LastErr
 
 	if !compliance.DisableActionWrapper {
 		if _, err := fmt.Fprintf(out, "}"); err != nil {
@@ -216,6 +216,11 @@ func sendOutput(compliance ComplianceOptions, out io.Writer, output node.Selecti
 		}
 	}
 	return err
+}
+
+func jsonWtr(compliance ComplianceOptions, out io.Writer) node.Node {
+	wtr := &nodeutil.JSONWtr{Out: out, QualifyNamespace: compliance.QualifyNamespaceDisabled}
+	return wtr.Node()
 }
 
 func readInput(compliance ComplianceOptions, r *http.Request, a *meta.Rpc) (node.Node, error) {

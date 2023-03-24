@@ -10,7 +10,7 @@ import (
 	"github.com/freeconf/yang/val"
 )
 
-//////////////////////////
+// ////////////////////////
 // C A R
 // Your application code.
 //
@@ -20,7 +20,7 @@ import (
 // - Not auto-generated from model files
 // - free of golang source code annotations/tags.
 type Car struct {
-	Tire []*tire
+	Tire []*Tire
 
 	// Not everything has to be structs, using a map may be useful
 	// in early prototyping
@@ -56,10 +56,10 @@ func New() *Car {
 }
 
 func (c *Car) newTires() {
-	c.Tire = make([]*tire, 4)
+	c.Tire = make([]*Tire, 4)
 	c.LastRotation = c.Miles
 	for pos := 0; pos < len(c.Tire); pos++ {
-		c.Tire[pos] = &tire{
+		c.Tire[pos] = &Tire{
 			Pos:  pos,
 			Wear: 100,
 		}
@@ -146,7 +146,7 @@ func (c *Car) rotateTires() {
 }
 
 // T I R E
-type tire struct {
+type Tire struct {
 	Pos  int
 	Size string
 	Flat bool
@@ -161,19 +161,19 @@ const (
 	tireWorn
 )
 
-func (t *tire) replace() {
+func (t *Tire) replace() {
 	t.Wear = 100
 	t.Flat = false
 }
 
-type tireListener func(t *tire)
+type tireListener func(t *Tire)
 
 type tireListenerRecord struct {
-	previous tire
+	previous Tire
 	l        tireListener
 }
 
-func (t *tire) checkFlat() bool {
+func (t *Tire) checkFlat() bool {
 	if !t.Flat {
 		// really need gausian distribution
 		t.Flat = (t.Wear - (rand.Float64() * 10)) < 0
@@ -182,7 +182,7 @@ func (t *tire) checkFlat() bool {
 	return false
 }
 
-func (t *tire) Worn() bool {
+func (t *Tire) Worn() bool {
 	return t.Wear < 20
 }
 
@@ -191,7 +191,8 @@ func (t *tire) Worn() bool {
 //  Bridge from model to car app.
 
 // carNode is root handler from car.yang
-//    module car { ... }
+//
+//	module car { ... }
 func Manage(c *Car) node.Node {
 
 	// Powerful combination, we're letting reflect do a lot of the CRUD
@@ -261,12 +262,13 @@ func Manage(c *Car) node.Node {
 }
 
 // tiresNode handles list of tires.
-//     list tire { ... }
-func tiresNode(tires []*tire) node.Node {
+//
+//	list tire { ... }
+func tiresNode(tires []*Tire) node.Node {
 	return &nodeutil.Basic{
 		// Handling lists are
 		OnNextItem: func(r node.ListRequest) nodeutil.BasicNextItem {
-			var t *tire
+			var t *Tire
 			return nodeutil.BasicNextItem{
 				GetByKey: func() error {
 					pos := r.Key[0].Value().(int)
@@ -285,7 +287,7 @@ func tiresNode(tires []*tire) node.Node {
 				},
 				Node: func() (node.Node, error) {
 					if t != nil {
-						return tireNode(t), nil
+						return TireNode(t), nil
 					}
 					return nil, nil
 				},
@@ -294,8 +296,8 @@ func tiresNode(tires []*tire) node.Node {
 	}
 }
 
-// tireNode handles each tire node.  Everything *inside* list tire { ...}
-func tireNode(t *tire) node.Node {
+// TireNode handles each tire node.  Everything *inside* list tire { ...}
+func TireNode(t *Tire) node.Node {
 
 	// Again, let reflection do a lot of the work
 	return &nodeutil.Extend{

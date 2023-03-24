@@ -1,5 +1,5 @@
 {
-"car:tire":[
+"tire":[
   {
     "pos":0,
     "size":"15"},
@@ -12,4 +12,4 @@
   {
     "pos":3,
     "size":"15"}],
-"car:speed":5}
+"speed":5}

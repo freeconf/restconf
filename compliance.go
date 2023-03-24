@@ -23,6 +23,7 @@ var Simplified = ComplianceOptions{
 	DisableNotificationWrapper: true,
 	DisableActionWrapper:       true,
 	SimpleErrorResponse:        true,
+	QualifyNamespaceDisabled:   true,
 }
 
 // ComplianceOptions hold all the compliance settings.  If you enable any of these
@@ -46,6 +47,10 @@ type ComplianceOptions struct {
 	// Errors have a specific structure
 	// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.3
 	SimpleErrorResponse bool
+
+	// QualifyNamespaceDisabled when true then all JSON object keys will not
+	// include YANG module according to RFC7952.
+	QualifyNamespaceDisabled bool
 }
 
 func (compliance ComplianceOptions) String() string {
