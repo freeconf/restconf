@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"time"
 
@@ -51,7 +52,7 @@ func main() {
 
 	// Device can hold multiple modules, here we are only adding one
 	d := device.New(source.Path(".:../yang"))
-	if err := d.Add("car", manage(car)); err != nil {
+	if err := d.Add("car", nodeutil.Dump(manage(car), os.Stdout)); err != nil {
 		panic(err)
 	}
 

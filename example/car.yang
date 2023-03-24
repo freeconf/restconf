@@ -20,4 +20,8 @@ module car {
 	rpc reset {
 		description "Reset the odometer";
 	}
+
+    notification update {
+        description "important state information about your car";
+    }
 }

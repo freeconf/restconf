@@ -1,0 +1,1 @@
+Code that is copied to site docs and is here so example code can be excersized and kept up to date. If you change code here, then there is likely a chance site docs need updating.
