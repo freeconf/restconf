@@ -1,0 +1,9 @@
+module marvel-studios {
+
+    list super-heros {
+        key name;
+        leaf name {
+            type string;
+        }
+    }
+}

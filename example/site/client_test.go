@@ -27,7 +27,7 @@ func TestClient(t *testing.T) {
 		"fc-restconf": {
 			"debug": true,
 			"web" : {
-				"port": ":9999"
+				"port": ":9998"
 			}
 		},
 		"car" : {
@@ -46,7 +46,7 @@ func TestClient(t *testing.T) {
 
 	// Connect
 	proto := client.ProtocolHandler(ypath)
-	dev, err := proto("http://localhost:9999/restconf")
+	dev, err := proto("http://localhost:9998/restconf")
 	if err != nil {
 		panic(err)
 	}
