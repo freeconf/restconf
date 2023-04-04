@@ -78,7 +78,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 			// compliance note : decided to support notifictions on get by delivering
 			// first event, then closing connection.  Spec calls for SSE
 			if meta.IsNotification(sel.Meta()) {
-				hdr.Set("Accept", TextStreamMimeType)
+				hdr.Set("Content-Type", TextStreamMimeType+"; charset=utf-8")
 				hdr.Set("Cache-Control", "no-cache")
 				hdr.Set("Connection", "keep-alive")
 				hdr.Set("X-Accel-Buffering", "no")
@@ -92,6 +92,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				if !hasFlusher {
 					panic("invalid response writer")
 				}
+				flusher.Flush()
+
 				subscribeCount++
 				defer func() {
 					subscribeCount--
@@ -126,8 +128,12 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 						fmt.Fprint(&buf, "}}")
 					}
 					fmt.Fprint(&buf, "\n\n")
-					w.Write(buf.Bytes())
+					_, err = w.Write(buf.Bytes())
+					if err != nil {
+						errOnSend <- fmt.Errorf("error writing notif. %s", err)
+					}
 					flusher.Flush()
+					fc.Debug.Printf("sent %d bytes in notif", buf.Len())
 				})
 				if err != nil {
 					fc.Err.Print(err)
@@ -146,7 +152,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				hdr.Set("Content-Type", mime.TypeByExtension(".json"))
 				err = sel.InsertInto(jsonWtr(compliance, w)).LastErr
 			}
-		case "PUT":
+		case "PUT", "PATCH":
+			// BUG: PUT should really call ReplaceFrom
 			// CRUD - Update
 			var input node.Node
 			input, err = requestNode(r)
@@ -219,7 +226,10 @@ func sendOutput(compliance ComplianceOptions, out io.Writer, output node.Selecti
 }
 
 func jsonWtr(compliance ComplianceOptions, out io.Writer) node.Node {
-	wtr := &nodeutil.JSONWtr{Out: out, QualifyNamespace: compliance.QualifyNamespaceDisabled}
+	wtr := &nodeutil.JSONWtr{
+		Out:              out,
+		QualifyNamespace: !compliance.QualifyNamespaceDisabled,
+	}
 	return wtr.Node()
 }
 

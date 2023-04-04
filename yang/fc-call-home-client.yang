@@ -5,11 +5,11 @@ module fc-call-home-client {
       but should be replaced with official implementation eventually.";
     revision 0000-00-00;
 
-    action register {
+    rpc register {
         input {}
     }
 
-    action unregister {
+    rpc unregister {
         input {}
     }
 

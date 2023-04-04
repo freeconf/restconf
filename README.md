@@ -203,11 +203,4 @@ Interop is important, include proper headers and all input and output will be in
 * [Docs](https://freeconf.org/docs/)
 * [Discussions](https://github.com/freeconf/restconf/discussions)
 * [Issues](https://github.com/freeconf/restconf/issues)
-
-## RFCs
-
-If you don't see an RFC here, open a discussion to see if there is interest or existing implementations.
-
-* [RFC 8040](https://datatracker.ietf.org/doc/html/rfc8040) - RESTCONF (sans XML)
-* [RFC 8525](https://datatracker.ietf.org/doc/html/rfc8525) - YANG Library
-* [RFCs from underlying yang library](https://github.com/freeconf/yang#rfcs)
+* [RFC Compliance](https://freeconf.org/docs/reference/compliance/rfcs/)
