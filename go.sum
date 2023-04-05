@@ -1,2 +1,4 @@
 github.com/freeconf/yang v0.0.0-20230324235123-ccfffc97f531 h1:suO9AzWlXdldKcMOwULxHwj214Q8F0wCSwuD0epDLyk=
 github.com/freeconf/yang v0.0.0-20230324235123-ccfffc97f531/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=
+github.com/freeconf/yang v0.0.0-20230405122240-93e4375862dd h1:Y+Sb3uCe0gIOgFKeOws2gkM0eyeHE8UdIFFiGnSxHD8=
+github.com/freeconf/yang v0.0.0-20230405122240-93e4375862dd/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=

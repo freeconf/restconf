@@ -91,13 +91,13 @@ func chkErr(t *testing.T, err error) {
 func formDummyNode(t *testing.T) node.Node {
 	return &nodeutil.Basic{
 		OnAction: func(r node.ActionRequest) (node.Node, error) {
-			v, err := r.Input.GetValue("a")
+			v, err := r.Input.Find("a").Get()
 			chkErr(t, err)
 			if v.String() != "hello" {
 				t.Error(v.String())
 			}
 
-			v, err = r.Input.GetValue("b")
+			v, err = r.Input.Find("b").Get()
 			chkErr(t, err)
 			rdr, valid := v.Value().(io.Reader)
 			if !valid {

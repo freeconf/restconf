@@ -147,21 +147,21 @@ notification identified {}
 		s.Context = s.Constraints.ContextConstraint(s)
 
 		t.Log(test.desc + " read")
-		fc.AssertEqual(t, test.read, val2auth(s.GetValue("count")))
+		fc.AssertEqual(t, test.read, val2auth(s.Find("count").Get()))
 
 		t.Logf(test.desc + " read path")
 		pathSel := s.Find("owner")
 		fc.AssertEqual(t, test.readPath, sel2auth(pathSel))
 
 		t.Log(test.desc + " write")
-		writeErr := s.Set("count", 100)
+		writeErr := s.Find("count").SetValue(100)
 		fc.AssertEqual(t, test.write, err2auth(writeErr))
 
 		t.Log(test.desc + " write path")
 		if pathSel.IsNil() {
 			fc.AssertEqual(t, test.writePath, xHidden)
 		} else {
-			writePathErr := pathSel.Set("name", "Harvey")
+			writePathErr := pathSel.Find("name").SetValue("Harvey")
 			fc.AssertEqual(t, test.writePath, err2auth(writePathErr))
 		}
 
