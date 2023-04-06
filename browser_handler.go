@@ -152,9 +152,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				hdr.Set("Content-Type", mime.TypeByExtension(".json"))
 				err = sel.InsertInto(jsonWtr(compliance, w)).LastErr
 			}
-		case "PUT", "PATCH":
-			// BUG: PUT should really call ReplaceFrom
-			// CRUD - Update
+		case "PATCH":
+			// CRUD - Upsert
 			var input node.Node
 			input, err = requestNode(r)
 			if err != nil {
@@ -162,6 +161,15 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				return
 			}
 			err = sel.UpsertFrom(input).LastErr
+		case "PUT":
+			// CRUD - Remove and replace
+			var input node.Node
+			input, err = requestNode(r)
+			if err != nil {
+				handleErr(compliance, err, r, w)
+				return
+			}
+			err = sel.ReplaceFrom(input)
 		case "POST":
 			if meta.IsAction(sel.Meta()) {
 				// RPC
