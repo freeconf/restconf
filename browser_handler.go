@@ -149,7 +149,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				return
 			} else {
 				// CRUD - Read
-				hdr.Set("Content-Type", mime.TypeByExtension(".json"))
+				setContentType(compliance, w.Header())
 				err = sel.InsertInto(jsonWtr(compliance, w)).LastErr
 			}
 		case "PATCH":
@@ -187,8 +187,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 					return
 				}
 				if !outputSel.IsNil() && a.Output() != nil {
-					w.Header().Set("Content-Type", YangDataJsonMimeType)
-					if err = sendOutput(compliance, w, outputSel, a); err != nil {
+					setContentType(compliance, w.Header())
+					if err = sendActionOutput(compliance, w, outputSel, a); err != nil {
 						handleErr(compliance, err, r, w)
 						return
 					}
@@ -214,7 +214,15 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 	}
 }
 
-func sendOutput(compliance ComplianceOptions, out io.Writer, output node.Selection, a *meta.Rpc) error {
+func setContentType(compliance ComplianceOptions, h http.Header) {
+	if compliance.QualifyNamespaceDisabled {
+		h.Set("Content-Type", mime.TypeByExtension(".json"))
+	} else {
+		h.Set("Content-Type", YangDataJsonMimeType)
+	}
+}
+
+func sendActionOutput(compliance ComplianceOptions, out io.Writer, output node.Selection, a *meta.Rpc) error {
 	if !compliance.DisableActionWrapper {
 		// IETF formated output
 		// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
