@@ -187,7 +187,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 					return
 				}
 				if !outputSel.IsNil() && a.Output() != nil {
-					w.Header().Set("Content-Type", "application/yang.data+json")
+					w.Header().Set("Content-Type", "application/yang-data+json")
 					if err = sendOutput(compliance, w, outputSel, a); err != nil {
 						handleErr(compliance, err, r, w)
 						return
