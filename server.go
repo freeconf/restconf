@@ -53,15 +53,19 @@ var ErrBadAddress = errors.New("expected format: http://server/restconf[=device]
 type RequestFilter func(ctx context.Context, w http.ResponseWriter, r *http.Request) (context.Context, error)
 
 func NewServer(d *device.Local) *Server {
+	m := NewHttpServe(d)
+	if err := d.Add("fc-restconf", Node(m, d.SchemaSource())); err != nil {
+		panic(err)
+	}
+	return m
+}
+
+func NewHttpServe(d *device.Local) *Server {
 	m := &Server{
 		notifiers: list.New(),
 		ypath:     d.SchemaSource(),
 	}
 	m.ServeDevice(d)
-
-	if err := d.Add("fc-restconf", Node(m, d.SchemaSource())); err != nil {
-		panic(err)
-	}
 
 	// Required by all devices according to RFC
 	if err := d.Add("ietf-yang-library", device.LocalDeviceYangLibNode(m.ModuleAddress, d)); err != nil {
