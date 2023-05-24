@@ -66,7 +66,7 @@ func TestClientNotif(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		sub, err := b.Root().Find("y").Notifications(func(msg node.Notification) {
+		sub, err := sel(b.Root().Find("y")).Notifications(func(msg node.Notification) {
 			fmt.Println("receiving message")
 			actual, err := nodeutil.WriteJSON(msg.Event)
 			if err != nil {

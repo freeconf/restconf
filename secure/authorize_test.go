@@ -147,32 +147,34 @@ notification identified {}
 		s.Context = s.Constraints.ContextConstraint(s)
 
 		t.Log(test.desc + " read")
-		fc.AssertEqual(t, test.read, val2auth(s.Find("count").Get()))
+		fc.AssertEqual(t, test.read, val2auth(sel(s.Find("count")).Get()))
 
 		t.Logf(test.desc + " read path")
-		pathSel := s.Find("owner")
+		pathSel := sel(s.Find("owner"))
 		fc.AssertEqual(t, test.readPath, sel2auth(pathSel))
 
 		t.Log(test.desc + " write")
-		writeErr := s.Find("count").SetValue(100)
+		writeErr := sel(s.Find("count")).SetValue(100)
 		fc.AssertEqual(t, test.write, err2auth(writeErr))
 
 		t.Log(test.desc + " write path")
-		if pathSel.IsNil() {
+		if pathSel == nil {
 			fc.AssertEqual(t, test.writePath, xHidden)
 		} else {
-			writePathErr := pathSel.Find("name").SetValue("Harvey")
+			writePathErr := sel(pathSel.Find("name")).SetValue("Harvey")
 			fc.AssertEqual(t, test.writePath, err2auth(writePathErr))
 		}
 
 		t.Log(test.desc + " execute")
-		actionErr := s.Find("fieldtrip").Action(nil).LastErr
+		_, actionErr := sel(s.Find("fieldtrip")).Action(nil)
 		fc.AssertEqual(t, test.action, err2auth(actionErr))
 
 		t.Log(test.desc + " notify")
 		var notifyErr error
-		s.Find("identified").Notifications(func(n node.Notification) {
-			notifyErr = n.Event.LastErr
+		sel(s.Find("identified")).Notifications(func(n node.Notification) {
+			if errNode, isErr := (n.Event.Node).(node.ErrorNode); isErr {
+				notifyErr = errNode.Err
+			}
 		})
 		fc.AssertEqual(t, test.notify, err2auth(notifyErr))
 	}
@@ -188,8 +190,8 @@ func val2auth(v val.Value, err error) string {
 	return xAllowed
 }
 
-func sel2auth(s node.Selection) string {
-	if s.IsNil() {
+func sel2auth(s *node.Selection) string {
+	if s == nil {
 		return xHidden
 	}
 	return xAllowed
@@ -202,4 +204,11 @@ func err2auth(err error) string {
 		return xUnauth
 	}
 	panic(err.Error())
+}
+
+func sel(sel *node.Selection, err error) *node.Selection {
+	if err != nil {
+		panic(err)
+	}
+	return sel
 }

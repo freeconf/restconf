@@ -51,8 +51,10 @@ func TestForm(t *testing.T) {
 		x := m.Actions()["x"]
 		input, err := readInput(Strict, r, x)
 		chkErr(t, err)
-		resp := b.Root().Find("x").Action(input)
-		chkErr(t, resp.LastErr)
+		xsel, err := b.Root().Find("x")
+		chkErr(t, err)
+		_, err = xsel.Action(input)
+		chkErr(t, err)
 		w.Write([]byte("ok"))
 		t.Log("form received")
 		done <- true
@@ -91,13 +93,17 @@ func chkErr(t *testing.T, err error) {
 func formDummyNode(t *testing.T) node.Node {
 	return &nodeutil.Basic{
 		OnAction: func(r node.ActionRequest) (node.Node, error) {
-			v, err := r.Input.Find("a").Get()
+			sel, err := r.Input.Find("a")
+			chkErr(t, err)
+			v, err := sel.Get()
 			chkErr(t, err)
 			if v.String() != "hello" {
 				t.Error(v.String())
 			}
 
-			v, err = r.Input.Find("b").Get()
+			sel, err = r.Input.Find("b")
+			chkErr(t, err)
+			v, err = sel.Get()
 			chkErr(t, err)
 			rdr, valid := v.Value().(io.Reader)
 			if !valid {

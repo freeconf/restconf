@@ -85,7 +85,9 @@ func yangLibModuleHandleNode(addresser ModuleAddresser, m *meta.Module) node.Nod
 			case "name":
 				hnd.Val = val.String(m.Ident())
 			case "revision":
-				hnd.Val = val.String(m.Revision().Ident())
+				if m.Revision() != nil {
+					hnd.Val = val.String(m.Revision().Ident())
+				}
 			case "schema":
 				hnd.Val = val.String(addresser(m))
 			case "namespace":

@@ -3,7 +3,7 @@ package stock
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
+	"os"
 
 	"github.com/freeconf/yang/node"
 	"github.com/freeconf/yang/nodeutil"
@@ -53,7 +53,7 @@ func CertificateAuthorityNode(config *Tls) node.Node {
 		case "certFile":
 			if r.Write {
 				config.CaCertFile = hnd.Val.String()
-				pemData, err := ioutil.ReadFile(hnd.Val.String())
+				pemData, err := os.ReadFile(hnd.Val.String())
 				if err != nil {
 					return err
 				}

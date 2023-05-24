@@ -14,8 +14,8 @@ import (
 )
 
 // Implements RFC Draft
-//   https://www.rfc-editor.org/rfc/rfc8071.html
 //
+//	https://www.rfc-editor.org/rfc/rfc8071.html
 type CallHome struct {
 	options    Options
 	proto      device.ProtocolHandler
@@ -144,10 +144,12 @@ func (callh *CallHome) unregister() error {
 	if err != nil {
 		return err
 	}
-	if err = reg.Root().Find("register").Action(nil).LastErr; err != nil {
+	sel, err := reg.Root().Find("register")
+	if err != nil {
 		return err
 	}
-	return nil
+	_, err = sel.Action(nil)
+	return err
 }
 
 func (callh *CallHome) register(registrar device.Device) error {
@@ -159,7 +161,11 @@ func (callh *CallHome) register(registrar device.Device) error {
 		"deviceId": callh.options.DeviceId,
 		"address":  callh.options.LocalAddress,
 	}
-	err = reg.Root().Find("register").Action(nodeutil.ReflectChild(r)).LastErr
+	sel, err := reg.Root().Find("register")
+	if err != nil {
+		return err
+	}
+	_, err = sel.Action(nodeutil.ReflectChild(r))
 	if err == nil {
 		callh.updateListeners(registrar, Register)
 		callh.Registered = true

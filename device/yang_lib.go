@@ -14,7 +14,11 @@ type ResolveModule interface {
 func LoadModules(ietfYangLib *node.Browser, resolver ResolveModule) (map[string]*meta.Module, error) {
 	mods := make(map[string]*meta.Module)
 	n := loadModulesListNode(mods, resolver)
-	if err := ietfYangLib.Root().Find("modules-state/module").InsertInto(n).LastErr; err != nil {
+	sel, err := ietfYangLib.Root().Find("modules-state/module")
+	if err != nil {
+		return nil, err
+	}
+	if err = sel.InsertInto(n); err != nil {
 		return nil, err
 	}
 	return mods, nil

@@ -51,20 +51,23 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 		ctx = context.WithValue(ctx, RemoteIpAddressKey, host)
 	}
 	sel := hndlr.browser.RootWithContext(ctx)
-	if sel = sel.FindUrl(r.URL); sel.LastErr == nil {
+	var target *node.Selection
+	defer sel.Release()
+	if target, err = sel.FindUrl(r.URL); err == nil {
 		hdr := w.Header()
-		if sel.IsNil() {
+		if target == nil {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
+		defer target.Release()
 		if handleErr(compliance, err, r, w) {
 			return
 		}
-		isRpcOrAction := r.Method == "POST" && meta.IsAction(sel.Meta())
+		isRpcOrAction := r.Method == "POST" && meta.IsAction(target.Meta())
 		if !isRpcOrAction && endpointId == endpointOperations {
 			http.Error(w, "{+restconf}/operations is only intended for rpcs", http.StatusBadRequest)
 		} else if isRpcOrAction && !compliance.AllowRpcUnderData && endpointId == endpointData {
-			isAction := sel.Path.Len() > 2 // otherwise an action and ok
+			isAction := target.Path.Len() > 2 // otherwise an action and ok
 			if !isAction {
 				http.Error(w, "rpcs are located at {+restconf}/operations not {+restconf}/data", http.StatusBadRequest)
 				return
@@ -73,11 +76,11 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 		switch r.Method {
 		case "DELETE":
 			// CRUD - Delete
-			err = sel.Delete()
+			err = target.Delete()
 		case "GET":
 			// compliance note : decided to support notifictions on get by delivering
 			// first event, then closing connection.  Spec calls for SSE
-			if meta.IsNotification(sel.Meta()) {
+			if meta.IsNotification(target.Meta()) {
 				hdr.Set("Content-Type", TextStreamMimeType+"; charset=utf-8")
 				hdr.Set("Cache-Control", "no-cache")
 				hdr.Set("Connection", "keep-alive")
@@ -100,7 +103,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				}()
 
 				errOnSend := make(chan error, 20)
-				sub, err = sel.Notifications(func(n node.Notification) {
+				sub, err = target.Notifications(func(n node.Notification) {
 					defer func() {
 						if r := recover(); r != nil {
 							err := fmt.Errorf("recovered while attempting to send notification %s", r)
@@ -119,7 +122,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 						etime := n.EventTime.Format(EventTimeFormat)
 						fmt.Fprintf(&buf, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
 					}
-					err := n.Event.InsertInto(jsonWtr(compliance, &buf)).LastErr
+					err := n.Event.InsertInto(jsonWtr(compliance, &buf))
 					if err != nil {
 						errOnSend <- err
 						return
@@ -150,7 +153,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 			} else {
 				// CRUD - Read
 				setContentType(compliance, w.Header())
-				err = sel.InsertInto(jsonWtr(compliance, w)).LastErr
+				err = target.InsertInto(jsonWtr(compliance, w))
 			}
 		case "PATCH":
 			// CRUD - Upsert
@@ -160,7 +163,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				handleErr(compliance, err, r, w)
 				return
 			}
-			err = sel.UpsertFrom(input).LastErr
+			err = target.UpsertFrom(input)
 		case "PUT":
 			// CRUD - Remove and replace
 			var input node.Node
@@ -169,11 +172,11 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				handleErr(compliance, err, r, w)
 				return
 			}
-			err = sel.ReplaceFrom(input)
+			err = target.ReplaceFrom(input)
 		case "POST":
-			if meta.IsAction(sel.Meta()) {
+			if meta.IsAction(target.Meta()) {
 				// RPC
-				a := sel.Meta().(*meta.Rpc)
+				a := target.Meta().(*meta.Rpc)
 				var input node.Node
 				if a.Input() != nil && r.ContentLength > 0 {
 					if input, err = readInput(compliance, r, a); err != nil {
@@ -181,32 +184,28 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 						return
 					}
 				}
-				outputSel := sel.Action(input)
-				if outputSel.LastErr != nil {
-					handleErr(compliance, outputSel.LastErr, r, w)
+				outputSel, err := target.Action(input)
+				if err != nil {
+					handleErr(compliance, err, r, w)
 					return
 				}
-				if !outputSel.IsNil() && a.Output() != nil {
+				if outputSel != nil && a.Output() != nil {
 					setContentType(compliance, w.Header())
 					if err = sendActionOutput(compliance, w, outputSel, a); err != nil {
 						handleErr(compliance, err, r, w)
 						return
 					}
-				} else {
-					err = outputSel.LastErr
 				}
 			} else {
 				// CRUD - Insert
 				payload = nodeutil.ReadJSONIO(r.Body)
-				err = sel.InsertFrom(payload).LastErr
+				err = target.InsertFrom(payload)
 			}
 		case "OPTIONS":
 			// NOP
 		default:
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		}
-	} else {
-		err = sel.LastErr
 	}
 
 	if err != nil {
@@ -222,7 +221,7 @@ func setContentType(compliance ComplianceOptions, h http.Header) {
 	}
 }
 
-func sendActionOutput(compliance ComplianceOptions, out io.Writer, output node.Selection, a *meta.Rpc) error {
+func sendActionOutput(compliance ComplianceOptions, out io.Writer, output *node.Selection, a *meta.Rpc) error {
 	if !compliance.DisableActionWrapper {
 		// IETF formated output
 		// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
@@ -231,7 +230,7 @@ func sendActionOutput(compliance ComplianceOptions, out io.Writer, output node.S
 			return err
 		}
 	}
-	err := output.InsertInto(jsonWtr(compliance, out)).LastErr
+	err := output.InsertInto(jsonWtr(compliance, out))
 
 	if !compliance.DisableActionWrapper {
 		if _, err := fmt.Fprintf(out, "}"); err != nil {

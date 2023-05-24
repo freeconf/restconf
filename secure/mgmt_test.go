@@ -31,7 +31,7 @@ func TestManage(t *testing.T) {
 				}]			
 			}]	
 		}
-	}`)).LastErr
+	}`))
 	if err != nil {
 		t.Fatal(err)
 	}
