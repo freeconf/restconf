@@ -175,7 +175,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				// RPC
 				a := sel.Meta().(*meta.Rpc)
 				var input node.Node
-				if a.Input() != nil {
+				if a.Input() != nil && r.ContentLength > 0 {
 					if input, err = readInput(compliance, r, a); err != nil {
 						handleErr(compliance, err, r, w)
 						return
