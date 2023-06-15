@@ -106,7 +106,7 @@ func (srv *Server) determineCompliance(r *http.Request) ComplianceOptions {
 	}
 	contentType := r.Header.Get("Content-Type")
 	acceptType := r.Header.Get("Accept")
-	if contentType == YangDataJsonMimeType || acceptType == YangDataJsonMimeType {
+	if contentType == YangDataJsonMimeType1 || contentType == YangDataXmlMimeType1 || acceptType == YangDataJsonMimeType2 || acceptType == YangDataXmlMimeType2 {
 		return Strict
 	}
 	if acceptType == TextStreamMimeType {

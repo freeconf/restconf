@@ -5,11 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime"
+	"io/ioutil"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"context"
 
+	"github.com/clbanning/mxj/v2"
 	"github.com/freeconf/yang/fc"
 	"github.com/freeconf/yang/meta"
 	"github.com/freeconf/yang/node"
@@ -28,7 +31,12 @@ type ProxyContextKey string
 
 var RemoteIpAddressKey = ProxyContextKey("FC_REMOTE_IP")
 
-const YangDataJsonMimeType = "application/yang-data+json"
+// TODO: Clarify this: RFC8572 uses application/yang.data+xml and RFC8040 uses application/yang-data+json
+const YangDataJsonMimeType1 = "application/yang-data+json"
+const YangDataJsonMimeType2 = "application/yang.data+json"
+
+const YangDataXmlMimeType1 = "application/yang-data+xml"
+const YangDataXmlMimeType2 = "application/yang.data+xml"
 
 const TextStreamMimeType = "text/event-stream"
 
@@ -149,7 +157,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				return
 			} else {
 				// CRUD - Read
-				setContentType(compliance, w.Header())
+				setResponseContentType(r.Header.Get("Accept"), compliance, w)
 				err = sel.InsertInto(jsonWtr(compliance, w)).LastErr
 			}
 		case "PATCH":
@@ -176,7 +184,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				a := sel.Meta().(*meta.Rpc)
 				var input node.Node
 				if a.Input() != nil {
-					if input, err = readInput(compliance, r, a); err != nil {
+					if input, err = readInput(compliance, r.Header.Get("Content-Type"), r, a); err != nil {
 						handleErr(compliance, err, r, w)
 						return
 					}
@@ -187,8 +195,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 					return
 				}
 				if !outputSel.IsNil() && a.Output() != nil {
-					setContentType(compliance, w.Header())
-					if err = sendActionOutput(compliance, w, outputSel, a); err != nil {
+					setResponseContentType(r.Header.Get("Accept"), compliance, w)
+					if err = sendActionOutput(compliance, w.Header().Get("Content-Type"), w, outputSel, a); err != nil {
 						handleErr(compliance, err, r, w)
 						return
 					}
@@ -214,28 +222,30 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 	}
 }
 
-func setContentType(compliance ComplianceOptions, h http.Header) {
-	if compliance.QualifyNamespaceDisabled {
-		h.Set("Content-Type", mime.TypeByExtension(".json"))
-	} else {
-		h.Set("Content-Type", YangDataJsonMimeType)
-	}
-}
+func sendActionOutput(compliance ComplianceOptions, content_type string, out io.Writer, output node.Selection, a *meta.Rpc) error {
 
-func sendActionOutput(compliance ComplianceOptions, out io.Writer, output node.Selection, a *meta.Rpc) error {
+	var node node.Node
+
 	if !compliance.DisableActionWrapper {
 		// IETF formated output
 		// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
 		mod := meta.OriginalModule(a).Ident()
-		if _, err := fmt.Fprintf(out, `{"%s:output":`, mod); err != nil {
-			return err
+		if strings.Contains(content_type, "xml") == false {
+			if _, err := fmt.Fprintf(out, `{"%s:output":`, mod); err != nil {
+				return err
+			}
+			node = jsonWtr(compliance, out)
+		} else {
+			node = xmlWtr(compliance, out)
 		}
 	}
-	err := output.InsertInto(jsonWtr(compliance, out)).LastErr
+	err := output.InsertInto(node).LastErr
 
 	if !compliance.DisableActionWrapper {
-		if _, err := fmt.Fprintf(out, "}"); err != nil {
-			return err
+		if strings.Contains(content_type, "xml") == false {
+			if _, err := fmt.Fprintf(out, "}"); err != nil {
+				return err
+			}
 		}
 	}
 	return err
@@ -249,7 +259,14 @@ func jsonWtr(compliance ComplianceOptions, out io.Writer) node.Node {
 	return wtr.Node()
 }
 
-func readInput(compliance ComplianceOptions, r *http.Request, a *meta.Rpc) (node.Node, error) {
+func xmlWtr(compliance ComplianceOptions, out io.Writer) node.Node {
+	wtr := &nodeutil.XMLWtr{
+		Out: out,
+	}
+	return wtr.Node()
+}
+
+func readInput(compliance ComplianceOptions, content_type string, r *http.Request, a *meta.Rpc) (node.Node, error) {
 	// not part of spec, custom feature to allow for form uploads
 	if isMultiPartForm(r.Header) {
 		return formNode(r)
@@ -260,16 +277,42 @@ func readInput(compliance ComplianceOptions, r *http.Request, a *meta.Rpc) (node
 	// IETF formated input
 	// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.1
 	var vals map[string]interface{}
-	d := json.NewDecoder(r.Body)
-	err := d.Decode(&vals)
-	if err != nil {
-		return nil, err
+	var payload map[string]interface{}
+	var key string
+	found := false
+
+	if content_type == YangDataJsonMimeType1 || content_type == YangDataJsonMimeType2 {
+		d := json.NewDecoder(r.Body)
+		err := d.Decode(&vals)
+		if err != nil {
+			return nil, err
+		}
+		key = meta.OriginalModule(a).Ident() + ":input"
+		//payload, found = vals[key].(map[string]interface{})
 	}
-	key := meta.OriginalModule(a).Ident() + ":input"
-	payload, found := vals[key].(map[string]interface{})
+
+	if content_type == YangDataXmlMimeType1 || content_type == YangDataXmlMimeType2 {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return nil, err
+		}
+		m, err := mxj.NewMapXml(body)
+		if err != nil {
+			return nil, err
+		}
+		key, err = m.Root()
+		if err != nil {
+			return nil, err
+		}
+		removeAttributesFromXmlMap(m)
+		vals = m
+	}
+
+	payload, found = vals[key].(map[string]interface{})
 	if !found {
 		return nil, fmt.Errorf("'%s' missing in input wrapper", key)
 	}
+
 	return nodeutil.ReadJSONValues(payload), nil
 }
 
@@ -280,4 +323,19 @@ func requestNode(r *http.Request) (node.Node, error) {
 	}
 
 	return nodeutil.ReadJSONIO(r.Body), nil
+}
+
+func removeAttributesFromXmlMap(m map[string]interface{}) {
+	val := reflect.ValueOf(m)
+	for _, e := range val.MapKeys() {
+		v := val.MapIndex(e)
+		if strings.Contains(e.String(), "-") == true {
+			delete(m, e.String())
+			continue
+		}
+		switch t := v.Interface().(type) {
+		case map[string]interface{}:
+			removeAttributesFromXmlMap(t)
+		}
+	}
 }

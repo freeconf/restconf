@@ -1,4 +1,4 @@
-github.com/freeconf/yang v0.0.0-20230324235123-ccfffc97f531 h1:suO9AzWlXdldKcMOwULxHwj214Q8F0wCSwuD0epDLyk=
-github.com/freeconf/yang v0.0.0-20230324235123-ccfffc97f531/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=
-github.com/freeconf/yang v0.0.0-20230405122240-93e4375862dd h1:Y+Sb3uCe0gIOgFKeOws2gkM0eyeHE8UdIFFiGnSxHD8=
-github.com/freeconf/yang v0.0.0-20230405122240-93e4375862dd/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=
+github.com/clbanning/mxj/v2 v2.5.7 h1:7q5lvUpaPF/WOkqgIDiwjBJaznaLCCBd78pi8ZyAnE0=
+github.com/clbanning/mxj/v2 v2.5.7/go.mod h1:hNiWqW14h+kc+MdF9C6/YoRfjEJoR3ou6tn/Qo+ve2s=
+github.com/nokia/freeconf-yang v0.0.0-20230615142024-1bcebdc18b66 h1:D3oY7V/tqS+/uiNhqgzNmfd+slDvDX4GMa+PokbdM/A=
+github.com/nokia/freeconf-yang v0.0.0-20230615142024-1bcebdc18b66/go.mod h1:xg9dIHu/2tw/pdxf2xscOXCZTfAwjdbG5S7sg5VqDd8=

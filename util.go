@@ -3,7 +3,9 @@ package restconf
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"mime"
 	"net/http"
 	"net/url"
 
@@ -11,6 +13,26 @@ import (
 
 	"github.com/freeconf/yang/fc"
 )
+
+type errResponse struct {
+	Type    string `json:"error-type"`
+	Tag     string `json:"error-tag"`
+	Path    string `json:"error-path"`
+	Message string `json:"error-message"`
+}
+
+type Error struct {
+	Type    string `xml:"error-type"`
+	Tag     string `xml:"error-tag"`
+	Path    string `xml:"error-path"`
+	Message string `xml:"error-message"`
+}
+
+type Errors struct {
+	XMLName xml.Name `xml:"errors"`
+	Xmlns   string   `xml:"xmlns,attr"`
+	Errors  [1]Error `xml:"error"`
+}
 
 // SplitAddress takes a complete address and breaks it into pieces according
 // to RESTCONF standards so you can use each piece in appropriate API call
@@ -76,19 +98,42 @@ func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.
 	msg := err.Error()
 	code := fc.HttpStatusCode(err)
 	if !compliance.SimpleErrorResponse {
-		errResp := errResponse{
-			Type:    "protocol",
-			Tag:     decodeErrorTag(code, err),
-			Path:    decodeErrorPath(r.RequestURI),
-			Message: msg,
-		}
+
 		var buff bytes.Buffer
-		fmt.Fprintf(&buff, `{"ietf-restconf:errors":{"error":[`)
-		json.NewEncoder(&buff).Encode(&errResp)
-		fmt.Fprintf(&buff, `]}}`)
+		request_accept := r.Header.Get("Accept")
+
+		xml_content := false
+		if request_accept == YangDataXmlMimeType1 || request_accept == YangDataXmlMimeType2 {
+			xml_content = true
+		}
+		if xml_content == true {
+			err := Error{
+				Type:    "protocol",
+				Tag:     decodeErrorTag(code, err),
+				Path:    decodeErrorPath(r.RequestURI),
+				Message: msg,
+			}
+			var errors Errors
+			errors.Errors[0] = err
+			errors.Xmlns = "urn:ietf:params:xml:ns:yang:ietf-restconf"
+			xml.NewEncoder(&buff).Encode(&errors)
+		} else {
+			errResp := errResponse{
+				Type:    "protocol",
+				Tag:     decodeErrorTag(code, err),
+				Path:    decodeErrorPath(r.RequestURI),
+				Message: msg,
+			}
+			fmt.Fprintf(&buff, `{"ietf-restconf:errors":{"error":[`)
+			json.NewEncoder(&buff).Encode(&errResp)
+			fmt.Fprintf(&buff, `]}}`)
+		}
 		msg = buff.String()
+		setResponseContentType(r.Header.Get("Accept"), compliance, w)
 	}
-	http.Error(w, msg, code)
+	w.WriteHeader(code)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	fmt.Fprintln(w, msg)
 	return true
 }
 
@@ -116,13 +161,6 @@ func decodeErrorPath(fullPath string) string {
 		return fullPath
 	}
 	return fmt.Sprint(module, ":", path)
-}
-
-type errResponse struct {
-	Type    string `json:"error-type"`
-	Tag     string `json:"error-tag"`
-	Path    string `json:"error-path"`
-	Message string `json:"error-message"`
 }
 
 func ipAddrSplitHostPort(addr string) (host string, port string) {
@@ -244,4 +282,23 @@ func shiftOptionalParamWithinSegmentInString(orig string, optionalDelim rune, se
 	segment = segment[:optPos]
 
 	return segment, optional, shifted
+}
+
+func setResponseContentType(request_accept string, compliance ComplianceOptions, w http.ResponseWriter) {
+
+	if request_accept == YangDataJsonMimeType1 || request_accept == YangDataJsonMimeType2 {
+		if compliance.QualifyNamespaceDisabled {
+			w.Header().Set("Content-Type", mime.TypeByExtension(".json"))
+		} else {
+			w.Header().Set("Content-Type", YangDataJsonMimeType1)
+		}
+	} else if request_accept == YangDataXmlMimeType1 || request_accept == YangDataXmlMimeType2 {
+		if compliance.QualifyNamespaceDisabled {
+			w.Header().Set("Content-Type", mime.TypeByExtension(".xml"))
+		} else {
+			w.Header().Set("Content-Type", YangDataXmlMimeType1)
+		}
+	} else {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	}
 }
