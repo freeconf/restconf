@@ -64,12 +64,15 @@ func TestServer(t *testing.T) {
 	contentType := "application/json"
 
 	r, _ = client.Post(addr+"/restconf/operations/car:rotateTires", contentType, nil)
-	fc.AssertEqual(t, 200, r.StatusCode)
+	fc.AssertEqual(t, 204, r.StatusCode)
 
-	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", YangDataJsonMimeType, nil)
+	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", YangDataJsonMimeType2, nil)
 	fc.AssertEqual(t, 400, r.StatusCode)
 
 	r, _ = client.Post(addr+"/restconf/data/car:rotateTires", contentType, nil)
+	fc.AssertEqual(t, 204, r.StatusCode)
+
+	r, _ = client.Post(addr+"/restconf/operations/car:get-miles", YangDataJsonMimeType2, nil)
 	fc.AssertEqual(t, 200, r.StatusCode)
 
 	s.Close()

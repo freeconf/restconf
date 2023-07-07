@@ -49,7 +49,7 @@ func TestForm(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b := node.NewBrowser(m, formDummyNode(t))
 		x := m.Actions()["x"]
-		input, err := readInput(Strict, r, x)
+		input, err := readInput(Strict, r.Header.Get("Content-Type"), r, x)
 		chkErr(t, err)
 		resp := b.Root().Find("x").Action(input)
 		chkErr(t, resp.LastErr)

@@ -19,6 +19,14 @@ module car {
         description "replace all tires";
     }
 
+    rpc get-miles {
+        output {
+            leaf miles {
+                type int64;
+            }
+        }
+    }
+
     grouping car {
         list tire {
             description "rubber circular part that makes contact with road";

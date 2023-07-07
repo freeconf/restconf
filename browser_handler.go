@@ -194,14 +194,17 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 					handleErr(compliance, outputSel.LastErr, r, w)
 					return
 				}
-				if !outputSel.IsNil() && a.Output() != nil {
-					setResponseContentType(r.Header.Get("Accept"), compliance, w)
-					if err = sendActionOutput(compliance, w.Header().Get("Content-Type"), w, outputSel, a); err != nil {
-						handleErr(compliance, err, r, w)
-						return
+				if !outputSel.IsNil() {
+					if a.Output() != nil {
+						setResponseContentType(r.Header.Get("Accept"), compliance, w)
+						if err = sendActionOutput(compliance, w.Header().Get("Content-Type"), w, outputSel, a); err != nil {
+							handleErr(compliance, err, r, w)
+							return
+						}
 					}
 				} else {
-					err = outputSel.LastErr
+					// Successfully processed POST but nothing to return
+					w.WriteHeader(http.StatusNoContent)
 				}
 			} else {
 				// CRUD - Insert

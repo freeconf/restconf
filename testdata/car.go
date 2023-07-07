@@ -10,6 +10,10 @@ import (
 	"github.com/freeconf/yang/val"
 )
 
+type Output struct {
+	Miles int64 `json:"miles"`
+}
+
 // ////////////////////////
 // C A R
 // Your application code.
@@ -224,6 +228,9 @@ func Manage(c *Car) node.Node {
 				c.rotateTires()
 			case "replaceTires":
 				c.replaceTires()
+			case "get-miles":
+				output := Output{Miles: 20000}
+				return nodeutil.ReflectChild(output), nil
 			}
 			return nil, nil
 		},
