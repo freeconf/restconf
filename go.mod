@@ -2,7 +2,7 @@ module github.com/freeconf/restconf
 
 go 1.20
 
-replace github.com/freeconf/yang v0.0.0-20230405122240-93e4375862dd => github.com/nokia/freeconf-yang v0.0.0-20230615142024-1bcebdc18b66
+replace github.com/freeconf/yang v0.0.0-20230405122240-93e4375862dd => github.com/nokia/freeconf-yang v0.0.0-20230823154945-ffe43b823c42
 
 require github.com/freeconf/yang v0.0.0-20230405122240-93e4375862dd
 
