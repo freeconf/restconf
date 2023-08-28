@@ -332,8 +332,9 @@ func removeAttributesFromXmlMap(m map[string]interface{}) {
 	val := reflect.ValueOf(m)
 	for _, e := range val.MapKeys() {
 		v := val.MapIndex(e)
-		if strings.Contains(e.String(), "-") == true {
-			delete(m, e.String())
+		key_value := e.String()
+		if len(key_value) > 0 && key_value[0] == '-' {
+			delete(m, key_value)
 			continue
 		}
 		switch t := v.Interface().(type) {
