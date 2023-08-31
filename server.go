@@ -232,7 +232,7 @@ func (srv *Server) serveSchema(compliance ComplianceOptions, ctx context.Context
 		handleErr(compliance, err, r, w)
 		return
 	}
-	b := nodeutil.Schema(ylib, m)
+	b := nodeutil.SchemaBrowser(ylib, m)
 	hndlr := &browserHandler{browser: b}
 	hndlr.ServeHTTP(compliance, ctx, w, r, endpointSchema)
 }
