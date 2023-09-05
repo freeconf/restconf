@@ -49,23 +49,24 @@ func TestClient(t *testing.T) {
 		root := b.Root()
 
 		// read
-		actual, err := nodeutil.WritePrettyJSON(root.Constrain("content=config"))
+		actual, err := nodeutil.WritePrettyJSON(sel(root.Constrain("content=config")))
 		fc.AssertEqual(t, nil, err)
 		fc.Gold(t, *updateFlag, []byte(actual), "testdata/gold/client-read.json")
 
 		// test
-		fc.AssertEqual(t, false, root.Find("tire=0").IsNil())
-		fc.AssertEqual(t, true, root.Find("tire=99").IsNil())
+		fc.AssertEqual(t, true, sel(root.Find("tire=0")) != nil)
+		tireSel, _ := root.Find("tire=99")
+		fc.AssertEqual(t, true, tireSel == nil)
 
 		// rpc
 		before := car.Tire[0].Wear
-		fc.AssertEqual(t, nil, root.Find("replaceTires").Action(nil).LastErr)
+		sel(sel(root.Find("replaceTires")).Action(nil))
 		after := car.Tire[0].Wear
 		fc.AssertEqual(t, false, before > after, fmt.Sprintf("%f > %f", before, after))
 
 		// notify
 		done := make(chan bool)
-		sub, err := root.Find("update?filter=running%3D'false'").Notifications(func(n node.Notification) {
+		sub, err := sel(root.Find("update?filter=running%3D'false'")).Notifications(func(n node.Notification) {
 			done <- true
 		})
 		fc.RequireEqual(t, nil, err)
@@ -75,4 +76,11 @@ func TestClient(t *testing.T) {
 	}
 	testClient(restconf.Simplified)
 	testClient(restconf.Strict)
+}
+
+func sel(sel *node.Selection, err error) *node.Selection {
+	if err != nil {
+		panic(err)
+	}
+	return sel
 }

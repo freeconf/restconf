@@ -38,8 +38,6 @@ type clientSupport interface {
 	clientStream(params string, p *node.Path, ctx context.Context) (<-chan streamEvent, error)
 }
 
-var noSelection node.Selection
-
 func (cn *clientNode) node() node.Node {
 	n := &nodeutil.Basic{}
 	n.OnBeginEdit = func(r node.NodeRequest) error {
@@ -49,7 +47,7 @@ func (cn *clientNode) node() node.Node {
 		if r.New {
 			cn.method = "POST"
 		} else {
-			cn.method = "PUT"
+			cn.method = "PATCH"
 		}
 		return cn.startEditMode(r.Selection.Path)
 	}
@@ -62,7 +60,7 @@ func (cn *clientNode) node() node.Node {
 		}
 		if r.Delete {
 			target := &node.Path{Parent: r.Selection.Path, Meta: r.Meta}
-			_, err := cn.request("DELETE", target, noSelection)
+			_, err := cn.request("DELETE", target, nil)
 			return nil, err
 		}
 		if cn.edit != nil {
@@ -177,7 +175,7 @@ func (cn *clientNode) startEditMode(path *node.Path) error {
 }
 
 func (cn *clientNode) validNavigation(target *node.Path) (bool, error) {
-	_, err := cn.request("OPTIONS", target, noSelection)
+	_, err := cn.request("OPTIONS", target, nil)
 	if errors.Is(err, fc.NotFoundError) {
 		return false, nil
 	}
@@ -205,10 +203,10 @@ func jsonNode(in io.ReadCloser) (node.Node, error) {
 
 }
 
-func (cn *clientNode) request(method string, p *node.Path, in node.Selection) (node.Node, error) {
+func (cn *clientNode) request(method string, p *node.Path, in *node.Selection) (node.Node, error) {
 	var payload bytes.Buffer
-	if !in.IsNil() {
-		if err := in.InsertInto(jsonWtr(cn.compliance, &payload)).LastErr; err != nil {
+	if in != nil {
+		if err := in.InsertInto(jsonWtr(cn.compliance, &payload)); err != nil {
 			return nil, err
 		}
 	}
@@ -224,16 +222,16 @@ func jsonWtr(compliance restconf.ComplianceOptions, out io.Writer) node.Node {
 	return wtr.Node()
 }
 
-func (cn *clientNode) requestAction(p *node.Path, in node.Selection) (node.Node, error) {
+func (cn *clientNode) requestAction(p *node.Path, in *node.Selection) (node.Node, error) {
 	var payload bytes.Buffer
-	if !in.IsNil() {
+	if in != nil {
 		if !cn.compliance.DisableActionWrapper {
 			// IETF formated input
 			// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.1
 
 			fmt.Fprintf(&payload, `{"%s:input":`, meta.OriginalModule(p.Meta).Ident())
 		}
-		if err := in.InsertInto(jsonWtr(cn.compliance, &payload)).LastErr; err != nil {
+		if err := in.InsertInto(jsonWtr(cn.compliance, &payload)); err != nil {
 			return nil, err
 		}
 		if !cn.compliance.DisableActionWrapper {

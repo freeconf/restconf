@@ -53,15 +53,19 @@ var ErrBadAddress = errors.New("expected format: http://server/restconf[=device]
 type RequestFilter func(ctx context.Context, w http.ResponseWriter, r *http.Request) (context.Context, error)
 
 func NewServer(d *device.Local) *Server {
+	m := NewHttpServe(d)
+	if err := d.Add("fc-restconf", Node(m, d.SchemaSource())); err != nil {
+		panic(err)
+	}
+	return m
+}
+
+func NewHttpServe(d *device.Local) *Server {
 	m := &Server{
 		notifiers: list.New(),
 		ypath:     d.SchemaSource(),
 	}
 	m.ServeDevice(d)
-
-	if err := d.Add("fc-restconf", Node(m, d.SchemaSource())); err != nil {
-		panic(err)
-	}
 
 	// Required by all devices according to RFC
 	if err := d.Add("ietf-yang-library", device.LocalDeviceYangLibNode(m.ModuleAddress, d)); err != nil {
@@ -119,7 +123,7 @@ func (srv *Server) determineCompliance(r *http.Request) ComplianceOptions {
 func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	compliance := srv.determineCompliance(r)
 	fc.Debug.Printf("compliance %s", compliance)
-	ctx := context.WithValue(context.Background(), ComplianceContextKey, compliance)
+	ctx := context.WithValue(r.Context(), ComplianceContextKey, compliance)
 	if fc.DebugLogEnabled() {
 		fc.Debug.Printf("%s %s", r.Method, r.URL)
 		if r.Body != nil {
@@ -229,7 +233,7 @@ func (srv *Server) serveSchema(compliance ComplianceOptions, ctx context.Context
 		handleErr(compliance, err, r, w)
 		return
 	}
-	b := nodeutil.Schema(ylib, m)
+	b := nodeutil.SchemaBrowser(ylib, m)
 	hndlr := &browserHandler{browser: b}
 	hndlr.ServeHTTP(compliance, ctx, w, r, endpointSchema)
 }

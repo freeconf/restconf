@@ -64,8 +64,6 @@ func (service *HttpServer) ApplyOptions(options HttpServerOptions) {
 			chkStartErr(service.Server.ListenAndServeTLS(options.Tls.CertFile, options.Tls.KeyFile))
 		}()
 	} else {
-		// This really is an error, spec says RESTCONF w/o HTTPS should not be allowed.
-		fc.Err.Printf("Without TLS configuration, HTTP2 cannot be enabled and notifications will be severly limited in web browsers")
 		go func() {
 			chkStartErr(service.Server.ListenAndServe())
 		}()
