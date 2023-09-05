@@ -197,7 +197,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 					handleErr(compliance, err, r, w)
 					return
 				}
-				if !outputSel.IsNil() {
+				if outputSel != nil {
 					if a.Output() != nil {
 						setResponseContentType(r.Header.Get("Accept"), compliance, w)
 						if err = sendActionOutput(compliance, w.Header().Get("Content-Type"), w, outputSel, a); err != nil {
@@ -226,7 +226,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 	}
 }
 
-func sendActionOutput(compliance ComplianceOptions, content_type string, out io.Writer, output node.Selection, a *meta.Rpc) error {
+func sendActionOutput(compliance ComplianceOptions, content_type string, out io.Writer, output *node.Selection, a *meta.Rpc) error {
 
 	var node node.Node
 
@@ -234,7 +234,7 @@ func sendActionOutput(compliance ComplianceOptions, content_type string, out io.
 		// IETF formated output
 		// https://datatracker.ietf.org/doc/html/rfc8040#section-3.6.2
 		mod := meta.OriginalModule(a).Ident()
-		if strings.Contains(content_type, "xml") == false {
+		if !strings.Contains(content_type, "xml") {
 			if _, err := fmt.Fprintf(out, `{"%s:output":`, mod); err != nil {
 				return err
 			}
@@ -246,7 +246,7 @@ func sendActionOutput(compliance ComplianceOptions, content_type string, out io.
 	err := output.InsertInto(node)
 
 	if !compliance.DisableActionWrapper {
-		if strings.Contains(content_type, "xml") == false {
+		if !strings.Contains(content_type, "xml") {
 			if _, err := fmt.Fprintf(out, "}"); err != nil {
 				return err
 			}
