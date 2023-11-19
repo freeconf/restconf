@@ -64,6 +64,19 @@ func TestClient(t *testing.T) {
 		after := car.Tire[0].Wear
 		fc.AssertEqual(t, false, before > after, fmt.Sprintf("%f > %f", before, after))
 
+		// rpc i/o
+		req := struct {
+			Source string
+		}{
+			Source: "tripa",
+		}
+		out := sel(sel(root.Find("getMiles")).Action(&nodeutil.Node{Object: &req}))
+		resp := struct {
+			Miles int64
+		}{}
+		fc.AssertEqual(t, nil, out.UpsertInto(&nodeutil.Node{Object: &resp}))
+		fc.AssertEqual(t, true, resp.Miles > 0, fmt.Sprintf("miles %d", resp.Miles))
+
 		// notify
 		done := make(chan bool)
 		sub, err := sel(root.Find("update?filter=running%3D'false'")).Notifications(func(n node.Notification) {
