@@ -49,7 +49,7 @@ func TestForm(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		b := node.NewBrowser(m, formDummyNode(t))
 		x := m.Actions()["x"]
-		input, err := readInput(Strict, r, x)
+		input, err := readInput(Strict, YangDataJsonMimeType1, r, x)
 		chkErr(t, err)
 		xsel, err := b.Root().Find("x")
 		chkErr(t, err)

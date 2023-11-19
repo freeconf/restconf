@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"container/list"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -28,6 +29,8 @@ type Car struct {
 
 	Miles   int64
 	Running bool
+	TripB   int64
+	TripA   int64
 
 	// When the tires were last rotated
 	LastRotation int64
@@ -66,6 +69,12 @@ func (c *Car) newTires() {
 	}
 }
 
+func (c *Car) increaseMiles() {
+	c.Miles++
+	c.TripB++
+	c.TripA++
+}
+
 func (c *Car) Start() {
 	if c.Running {
 		return
@@ -80,7 +89,7 @@ func (c *Car) Start() {
 			// is dynamically changed.  Simple little tricks like this make
 			// your application support live updates
 			<-time.After(time.Duration(c.Speed) * time.Millisecond)
-			c.Miles++
+			c.increaseMiles()
 
 			for _, t := range c.Tire {
 				previousWorn := t.Worn()
@@ -224,6 +233,37 @@ func Manage(c *Car) node.Node {
 				c.rotateTires()
 			case "replaceTires":
 				c.replaceTires()
+			case "getMiles":
+				req := struct {
+					Source string
+				}{
+					Source: "odometer",
+				}
+				resp := struct {
+					Miles int64
+				}{}
+				if r.Input != nil {
+					in := &nodeutil.Node{
+						Object: &req,
+						Options: nodeutil.NodeOptions{
+							EnumAsStrings: true,
+						},
+					}
+					if err := r.Input.UpsertInto(in); err != nil {
+						return nil, err
+					}
+				}
+				switch req.Source {
+				case "odometer":
+					resp.Miles = c.Miles
+				case "tripa":
+					resp.Miles = c.TripA
+				case "tripb":
+					resp.Miles = c.TripB
+				default:
+					return nil, fmt.Errorf("not a valid source '%s'", req.Source)
+				}
+				return &nodeutil.Node{Object: &resp}, nil
 			}
 			return nil, nil
 		},

@@ -174,7 +174,7 @@ func (c *client) clientStream(params string, p *node.Path, ctx context.Context) 
 		q.Add(restconf.SimplifiedComplianceParam, "")
 		req.URL.RawQuery = q.Encode()
 	}
-	req.Header.Set("Accept", restconf.TextStreamMimeType)
+	req.Header.Set("Accept", string(restconf.TextStreamMimeType))
 	fc.Debug.Printf("<=> SSE %s", fullUrl)
 	stream := make(chan streamEvent)
 	go func() {
@@ -290,11 +290,11 @@ func (c *client) clientDo(method string, params string, p *node.Path, payload io
 		return nil, err
 	}
 	if c.compliance == restconf.Simplified {
-		req.Header.Set("Content-Type", restconf.PlainJsonMimeType)
-		req.Header.Set("Accept", restconf.PlainJsonMimeType)
+		req.Header.Set("Content-Type", string(restconf.PlainJsonMimeType))
+		req.Header.Set("Accept", string(restconf.PlainJsonMimeType))
 	} else {
-		req.Header.Set("Content-Type", restconf.YangDataJsonMimeType)
-		req.Header.Set("Accept", restconf.YangDataJsonMimeType)
+		req.Header.Set("Content-Type", string(restconf.YangDataJsonMimeType1))
+		req.Header.Set("Accept", string(restconf.YangDataJsonMimeType1))
 	}
 	fc.Debug.Printf("=> %s %s", method, fullUrl)
 	resp, err := c.client.Do(req)

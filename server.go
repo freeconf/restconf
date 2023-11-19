@@ -108,9 +108,9 @@ func (srv *Server) determineCompliance(r *http.Request) ComplianceOptions {
 	if r.URL.Query().Has(SimplifiedComplianceParam) {
 		return Simplified
 	}
-	contentType := r.Header.Get("Content-Type")
-	acceptType := r.Header.Get("Accept")
-	if contentType == YangDataJsonMimeType || acceptType == YangDataJsonMimeType {
+	contentType := MimeType(r.Header.Get("Content-Type"))
+	acceptType := MimeType(r.Header.Get("Accept"))
+	if contentType == YangDataJsonMimeType1 || acceptType == YangDataJsonMimeType1 {
 		return Strict
 	}
 	if acceptType == TextStreamMimeType {
