@@ -207,6 +207,9 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 						handleErr(compliance, err, r, w)
 						return
 					}
+				} else {
+					// Successfully processed POST but nothing to return
+					w.WriteHeader(http.StatusNoContent)
 				}
 			} else {
 				// CRUD - Insert
