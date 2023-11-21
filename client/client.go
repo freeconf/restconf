@@ -301,7 +301,7 @@ func (c *client) clientDo(method string, params string, p *node.Path, payload io
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode >= 300 {
 		msg, _ := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("(%d) %s", resp.StatusCode, string(msg))
 	}
