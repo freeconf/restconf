@@ -1,6 +1,6 @@
 module car {
     prefix "";
-    namespace "";
+    namespace "c";
     description "Vehicle of sorts";
     revision 0;    
 
