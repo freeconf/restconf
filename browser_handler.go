@@ -115,6 +115,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				}()
 
 				errOnSend := make(chan error, 20)
+				origMod := meta.OriginalModule(target.Meta())
 				sub, err = target.Notifications(func(n node.Notification) {
 					defer func() {
 						if r := recover(); r != nil {
@@ -132,7 +133,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 					fmt.Fprint(&buf, "data: ")
 					if !compliance.DisableNotificationWrapper {
 						etime := n.EventTime.Format(EventTimeFormat)
-						wireFmt.writeNotificationStart(&buf, etime)
+						wireFmt.writeNotificationStart(&buf, origMod, etime)
 					}
 					err := n.Event.InsertInto(nodeWtr(acceptType, compliance, &buf))
 					if err != nil {
@@ -271,7 +272,7 @@ func nodeWtr(mime MimeType, compliance ComplianceOptions, out io.Writer) node.No
 
 func nodeRdr(mime MimeType, in io.Reader) (node.Node, error) {
 	if mime.IsXml() {
-		return nodeutil.ReadXML(in)
+		return nodeutil.ReadXMLBlock(in)
 	}
 	return nodeutil.ReadJSONIO(in), nil
 }
@@ -318,6 +319,10 @@ func (m MimeType) IsJson() bool {
 	return strings.HasSuffix(string(m), "json")
 }
 
+func (m MimeType) IsRfc() bool {
+	return m == YangDataJsonMimeType1 || m == YangDataJsonMimeType2 || m == YangDataXmlMimeType1 || m == YangDataXmlMimeType2
+}
+
 func findNodeOutsideSchema(m *meta.Module, container string, n node.Node) (node.Node, error) {
 	// create a new module on the fly with just a single container and immediately
 	// select that container.
@@ -327,5 +332,8 @@ func findNodeOutsideSchema(m *meta.Module, container string, n node.Node) (node.
 	bldr.Container(copy, container)
 	b := node.NewBrowser(copy, n)
 	sel, err := b.Root().Find(container)
+	if sel == nil || err != nil {
+		return nil, err
+	}
 	return sel.Node, err
 }

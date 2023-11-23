@@ -15,7 +15,7 @@ func getWireFormatter(accept MimeType) wireFormat {
 }
 
 type wireFormat interface {
-	writeNotificationStart(w io.Writer, etime string) (int, error)
+	writeNotificationStart(w io.Writer, module *meta.Module, etime string) (int, error)
 	writeNotificationEnd(w io.Writer) (int, error)
 	writeRpcOutputStart(w io.Writer, module *meta.Module) (int, error)
 	writeRpcOutputEnd(w io.Writer) (int, error)
@@ -23,7 +23,7 @@ type wireFormat interface {
 
 type jsonWireFormat int
 
-func (jsonWireFormat) writeNotificationStart(w io.Writer, etime string) (int, error) {
+func (jsonWireFormat) writeNotificationStart(w io.Writer, module *meta.Module, etime string) (int, error) {
 	return fmt.Fprintf(w, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
 }
 
@@ -41,19 +41,19 @@ func (jsonWireFormat) writeRpcOutputEnd(w io.Writer) (int, error) {
 
 type xmlWireFormat int
 
-func (xmlWireFormat) writeNotificationStart(w io.Writer, etime string) (int, error) {
-	return fmt.Fprintf(w, `{"ietf-restconf:notification":{"eventTime":"%s","event":`, etime)
+func (xmlWireFormat) writeNotificationStart(w io.Writer, module *meta.Module, etime string) (int, error) {
+	return fmt.Fprintf(w, `<notification xmlns="urn:ietf:params:xml:ns:netconf:notif\
+	ication:1.0"><eventTime>%s</eventTime><event xmlns="%s">`, etime, module.Namespace())
 }
 
 func (xmlWireFormat) writeNotificationEnd(w io.Writer) (int, error) {
-	return fmt.Fprint(w, "}}")
+	return fmt.Fprint(w, "</event></notification>")
 }
 
 func (xmlWireFormat) writeRpcOutputStart(w io.Writer, module *meta.Module) (int, error) {
-
-	return fmt.Fprintf(w, `<output xmlns="%s">`, module.Namespace())
+	return 0, nil
 }
 
 func (xmlWireFormat) writeRpcOutputEnd(w io.Writer) (int, error) {
-	return fmt.Fprint(w, "</output>")
+	return 0, nil
 }
