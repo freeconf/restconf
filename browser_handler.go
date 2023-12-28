@@ -62,7 +62,12 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 	sel := hndlr.browser.RootWithContext(ctx)
 	var target *node.Selection
 	defer sel.Release()
-	if target, err = sel.FindUrl(r.URL); err == nil {
+	if target, err = sel.Find(r.URL.EscapedPath()); err == nil {
+		if err = node.BuildConstraints(target, r.URL.Query()); err != nil {
+			if handleErr(compliance, err, r, w) {
+				return
+			}
+		}
 		acceptType := MimeType(r.Header.Get("Accept"))
 		contentType := MimeType(r.Header.Get("Content-Type"))
 		wireFmt := getWireFormatter(acceptType)

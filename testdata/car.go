@@ -214,7 +214,7 @@ func Manage(c *Car) node.Node {
 		OnChild: func(p node.Node, r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
 			case "tire":
-				return tiresNode(c.Tire), nil
+				return tiresNode(c, c.Tire), nil
 			case "specs":
 				// knows how to r/w config from a map
 				return nodeutil.ReflectChild(c.Specs), nil
@@ -304,7 +304,7 @@ func Manage(c *Car) node.Node {
 // tiresNode handles list of tires.
 //
 //	list tire { ... }
-func tiresNode(tires []*Tire) node.Node {
+func tiresNode(c *Car, tires []*Tire) node.Node {
 	return &nodeutil.Basic{
 		// Handling lists are
 		OnNextItem: func(r node.ListRequest) nodeutil.BasicNextItem {
@@ -315,6 +315,16 @@ func tiresNode(tires []*Tire) node.Node {
 					if pos < len(tires) {
 						t = tires[pos]
 					}
+					return nil
+				},
+				DeleteByKey: func() error {
+					// you could decide deleting a tire is illegal but for
+					// the sake of this example code we are allowing it.
+					pos := r.Key[0].Value().(int)
+					if pos >= len(tires) {
+						return fmt.Errorf("tire %d does not exist", pos)
+					}
+					c.Tire = append(tires[:pos], tires[pos+1:]...)
 					return nil
 				},
 				GetByRow: func() ([]val.Value, error) {
