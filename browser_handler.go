@@ -170,7 +170,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				return
 			} else {
 				// CRUD - Read
-				setContentType(compliance, w.Header())
+				setContentType(compliance, w.Header(), acceptType)
 				err = target.InsertInto(nodeWtr(acceptType, compliance, w))
 			}
 		case "PATCH":
@@ -208,7 +208,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 					return
 				}
 				if outputSel != nil && a.Output() != nil {
-					setContentType(compliance, w.Header())
+					setContentType(compliance, w.Header(), acceptType)
 					if err = sendActionOutput(acceptType, compliance, wireFmt, w, outputSel, a); err != nil {
 						handleErr(compliance, err, r, w)
 						return
@@ -234,11 +234,11 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 	}
 }
 
-func setContentType(compliance ComplianceOptions, h http.Header) {
+func setContentType(compliance ComplianceOptions, h http.Header, contentType MimeType) {
 	if compliance.QualifyNamespaceDisabled {
 		h.Set("Content-Type", mime.TypeByExtension(".json"))
 	} else {
-		h.Set("Content-Type", string(YangDataJsonMimeType1))
+		h.Set("Content-Type", string(contentType))
 	}
 }
 
