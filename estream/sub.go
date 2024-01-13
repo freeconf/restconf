@@ -1,6 +1,7 @@
 package estream
 
 import (
+	"errors"
 	"time"
 
 	"github.com/freeconf/yang/node"
@@ -19,7 +20,7 @@ const (
 
 type SubEvent struct {
 	EventId      SubEventType
-	Subscription *subscription
+	Subscription *Subscription
 	Reason       string
 }
 
@@ -44,7 +45,7 @@ type SubscriptionOptions struct {
 	SourceAddress string
 }
 
-type subscription struct {
+type Subscription struct {
 	Id     string
 	closer node.NotifyCloser
 	opts   SubscriptionOptions
@@ -53,11 +54,34 @@ type subscription struct {
 	Recievers                   map[string]*receiverEntry
 }
 
-func (s *subscription) Options() SubscriptionOptions {
+func NewSubscription() *Subscription {
+	return &Subscription{
+		Recievers: make(map[string]*receiverEntry),
+	}
+}
+
+func (s *Subscription) AddReceiver(name string, receiver Receiver) error {
+	if _, exists := s.Recievers[name]; exists {
+		return errors.New("receiver already exists")
+	}
+	s.Recievers[name] = &receiverEntry{
+		Name:     name,
+		receiver: receiver,
+		State:    RecvStateActive,
+	}
+	return nil
+}
+
+func (s *Subscription) RemoveReceiver(name string) error {
+	delete(s.Recievers, name)
+	return nil
+}
+
+func (s *Subscription) Options() SubscriptionOptions {
 	return s.opts
 }
 
-func (s *subscription) Apply(opts SubscriptionOptions) error {
+func (s *Subscription) Apply(opts SubscriptionOptions) error {
 	if s.closer != nil {
 		s.closer()
 	}
@@ -74,14 +98,18 @@ func (s *subscription) Apply(opts SubscriptionOptions) error {
 		}
 		for _, r := range s.Recievers {
 			if eventSel != nil && r.State == RecvStateActive {
-				r.State = r.receiver(ReceiverEvent{
-					Name:  r.Name,
-					Event: eventSel,
+				r.State, err = r.receiver(ReceiverEvent{
+					Name:      r.Name,
+					EventTime: n.EventTime,
+					Event:     eventSel,
 				})
-				r.SentEventRecords++
-			} else {
-				r.ExcludedEventRecords++
+				if err == nil {
+					r.SentEventRecords++
+					continue
+				}
 			}
+			r.ExcludedEventRecords++
+
 		}
 	})
 	return err

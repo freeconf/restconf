@@ -1,6 +1,11 @@
 package estream
 
-import "github.com/freeconf/yang/node"
+import (
+	"errors"
+	"time"
+
+	"github.com/freeconf/yang/node"
+)
 
 type RecvState int
 
@@ -19,22 +24,25 @@ type receiverEntry struct {
 	receiver             Receiver
 }
 
-type Receiver func(e ReceiverEvent) RecvState
+var ErrBufferOverflow = errors.New("event buffer full")
+
+type Receiver func(e ReceiverEvent) (RecvState, error)
 
 func NewBufferedReceiver(size int) (chan<- ReceiverEvent, Receiver) {
 	events := make(chan ReceiverEvent, size)
-	return events, func(e ReceiverEvent) RecvState {
+	return events, func(e ReceiverEvent) (RecvState, error) {
 		if len(events) == size {
-			return RecvStateSuspended
+			return RecvStateSuspended, ErrBufferOverflow
 		}
 		events <- e
-		return RecvStateActive
+		return RecvStateActive, nil
 	}
 }
 
 type ReceiverEvent struct {
-	Name  string
-	Event *node.Selection
+	Name      string
+	EventTime time.Time
+	Event     *node.Selection
 }
 
 func (r *receiverEntry) Reset() {

@@ -30,7 +30,7 @@ func Manage(s *Service) node.Node {
 		},
 		OnNewNode: func(p *nodeutil.Node, m meta.Meta, o any) (node.Node, error) {
 			switch x := o.(type) {
-			case *subscription:
+			case *Subscription:
 				return api.subscription(p, m, x)
 			}
 			return p.DoNewNode(m, o)
@@ -64,7 +64,7 @@ func Manage(s *Service) node.Node {
 	}
 }
 
-func (api api) subscription(p *nodeutil.Node, m meta.Meta, s *subscription) (node.Node, error) {
+func (api api) subscription(p *nodeutil.Node, m meta.Meta, s *Subscription) (node.Node, error) {
 	opts := s.Options()
 	base, err := p.New(m, &opts)
 	if err != nil {

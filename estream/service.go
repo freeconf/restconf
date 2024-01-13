@@ -11,7 +11,7 @@ import (
 )
 
 type Service struct {
-	subscriptions      map[string]*subscription
+	subscriptions      map[string]*Subscription
 	filters            map[string]Filter
 	streams            map[string]Stream
 	listeners          *list.List
@@ -20,7 +20,7 @@ type Service struct {
 
 func NewService() *Service {
 	return &Service{
-		subscriptions:      make(map[string]*subscription),
+		subscriptions:      make(map[string]*Subscription),
 		filters:            make(map[string]Filter),
 		streams:            make(map[string]Stream),
 		listeners:          list.New(),
@@ -49,8 +49,8 @@ type EstablishRequest struct {
 	StopTime         time.Time
 }
 
-func (s *Service) EstablishSubscription(req EstablishRequest) (*subscription, error) {
-	sub := &subscription{
+func (s *Service) EstablishSubscription(req EstablishRequest) (*Subscription, error) {
+	sub := &Subscription{
 		Id: s.nextSubId(),
 	}
 	var opts SubscriptionOptions
