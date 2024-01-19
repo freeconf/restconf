@@ -109,7 +109,7 @@ func (self *Local) ApplyStartupConfigFile(fname string) error {
 	cfgRdr, err := os.Open(fname)
 	defer cfgRdr.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
 	return self.ApplyStartupConfig(cfgRdr)
 }
