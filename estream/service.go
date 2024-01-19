@@ -50,9 +50,7 @@ type EstablishRequest struct {
 }
 
 func (s *Service) EstablishSubscription(req EstablishRequest) (*Subscription, error) {
-	sub := &Subscription{
-		Id: s.nextSubId(),
-	}
+	sub := NewSubscription(s.nextSubId(), s)
 	var opts SubscriptionOptions
 	if err := s.updateFilter(&opts, req.StreamFilterName); err != nil {
 		return nil, err
@@ -118,6 +116,7 @@ func (s *Service) ModifySubscription(req ModifyRequest) error {
 }
 
 func (s *Service) updateListeners(e SubEvent) {
+	fc.Debug.Printf("updateListeners %v", e)
 	for l := s.listeners.Front(); l != nil; l = l.Next() {
 		l.Value.(eventListener)(e)
 	}

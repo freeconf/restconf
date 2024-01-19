@@ -16,28 +16,13 @@ const (
 	RecvStateConnecting
 )
 
-type receiverEntry struct {
-	Name                 string
-	State                RecvState
-	ExcludedEventRecords int64
-	SentEventRecords     int64
-	receiver             Receiver
+type Receiver func(e ReceiverEvent) error
+
+type receiverSubscription interface {
+	activateReceiver(r *receiverEntry, active bool, reason string)
 }
 
 var ErrBufferOverflow = errors.New("event buffer full")
-
-type Receiver func(e ReceiverEvent) (RecvState, error)
-
-func NewBufferedReceiver(size int) (chan<- ReceiverEvent, Receiver) {
-	events := make(chan ReceiverEvent, size)
-	return events, func(e ReceiverEvent) (RecvState, error) {
-		if len(events) == size {
-			return RecvStateSuspended, ErrBufferOverflow
-		}
-		events <- e
-		return RecvStateActive, nil
-	}
-}
 
 type ReceiverEvent struct {
 	Name      string
@@ -45,9 +30,19 @@ type ReceiverEvent struct {
 	Event     *node.Selection
 }
 
+type receiverEntry struct {
+	Name                 string
+	sub                  receiverSubscription
+	State                RecvState
+	ExcludedEventRecords int64
+	SentEventRecords     int64
+	receiver             Receiver
+}
+
 func (r *receiverEntry) Reset() {
+	// TODO: not sure spec says to do this
 	r.ExcludedEventRecords = 0
 	r.SentEventRecords = 0
 
-	// TODO: reset connection to destination
+	r.sub.activateReceiver(r, true, "")
 }

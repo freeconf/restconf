@@ -56,6 +56,10 @@ func TestApi(t *testing.T) {
 	fc.AssertEqual(t, `{"id":"100"}`, actual)
 	fc.AssertEqual(t, SubEventStarted, (<-events).EventId)
 
+	full, err := nodeutil.WritePrettyJSON(root)
+	fc.AssertEqual(t, nil, err)
+	fc.AssertEqual(t, `xxx`, full)
+
 	badFilter := `{
 		"stream-filter-name" : "nope",
 		"stream" : "my-stream"

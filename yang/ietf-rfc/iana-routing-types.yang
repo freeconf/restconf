@@ -12,7 +12,7 @@ module iana-routing-types {
              Los Angeles, CA  90094-2536
              United States of America
      Tel:    +1 310 301 5800
-     <mailto:iana@iana.org>";
+     <mailto:iana&iana.org>";
 
   description
     "This module contains a collection of YANG data types
@@ -32,12 +32,19 @@ module iana-routing-types {
      This version of this YANG module is part of RFC 8294; see
      the RFC itself for full legal notices.";
 
+   revision 2018-10-29 {
+     description "Added SAFI value 74.";
+  }
+
    revision 2017-12-04 {
      description "Initial revision.";
      reference
        "RFC 8294: Common YANG Data Types for the Routing Area.
         Section 4.";
   }
+
+
+
 
   /*** Collection of IANA types related to routing ***/
   /*** IANA Address Family enumeration ***/
@@ -131,6 +138,10 @@ module iana-routing-types {
           "Banyan Vines Address Family.";
       }
 
+
+
+
+
       enum e164-nsap {
         value 15;
         description
@@ -223,6 +234,10 @@ module iana-routing-types {
           "Multi-Topology IPv4 Address Family.";
       }
 
+
+
+
+
       enum mt-v6 {
         value 30;
         description
@@ -267,6 +282,9 @@ module iana-routing-types {
         description
           "IEEE 48-bit MAC Address Family.";
       }
+
+
+
 
       enum mac-64 {
         value 16390;
@@ -314,6 +332,8 @@ module iana-routing-types {
       }
     }
 
+
+
     description
       "Enumeration containing all the IANA-defined
        Address Families.";
@@ -360,6 +380,7 @@ module iana-routing-types {
         description
           "Tunnel Encap SAFI.";
       }
+
 
       enum mcast-vpls-safi {
         value 8;
@@ -425,6 +446,12 @@ module iana-routing-types {
         value 73;
         description
           "Segment Routing - Traffic Engineering (SR-TE) SAFI.";
+      }
+
+      enum sd-wan-capabilities-safi {
+        value 74;
+        description
+          "SD-WAN Capabilities SAFI.";
       }
 
       enum labeled-vpn-safi {

@@ -118,6 +118,7 @@ func (c *Car) OnUpdate(l CarListener) nodeutil.Subscription {
 }
 
 func (c *Car) updateListeners() {
+	fmt.Printf("updating %d listeners", c.listeners.Len())
 	e := c.listeners.Front()
 	for e != nil {
 		e.Value.(CarListener)(c)

@@ -1,1 +1,12 @@
-ietf-foo@2016-03-20.yang
+module ietf-foo {
+  namespace "urn:ietf:params:xml:ns:yang:ietf-foo";
+  prefix "foo";
+  organization "...";
+  contact "...";
+  description "...";
+  revision 2016-03-20 {
+    description "Latest revision";
+    reference "RFC XXXX: Foo Protocol";
+  }
+  // ... more statements
+}

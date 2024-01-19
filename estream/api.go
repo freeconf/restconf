@@ -41,6 +41,8 @@ func Manage(s *Service) node.Node {
 				return p.New(r.Meta, s.subscriptions)
 			case "filters":
 				return p.New(r.Meta, s.filters)
+			case "streams":
+				return p.New(r.Meta, s.streams)
 			}
 			return p.DoChild(r)
 		},
