@@ -102,7 +102,7 @@ func formChildNode(f *multipart.FileHeader) (node.Node, error) {
 		return nil, err
 	}
 	defer rdr.Close()
-	return nodeutil.ReadJSONIO(rdr), nil
+	return nodeutil.ReadJSONIO(rdr)
 }
 
 func formListNode(files []*multipart.FileHeader) node.Node {

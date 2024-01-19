@@ -53,7 +53,8 @@ func Test_ClientOperations(t *testing.T) {
 		"car": `{}`,
 	}
 	expectedEdit := `{"mileage":{"odometer":1001}}`
-	edit := nodeutil.ReadJSON(expectedEdit)
+	edit, err := nodeutil.ReadJSON(expectedEdit)
+	fc.RequireEqual(t, nil, err)
 	fc.RequireEqual(t, nil, sel(b.Root().Find("car")).UpsertFrom(edit))
 	fc.AssertEqual(t, expectedEdit, support.patch["car"])
 }

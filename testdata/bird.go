@@ -27,18 +27,27 @@ func BirdDevice(json string) (*device.Local, map[string]*Bird) {
 	b, birds := BirdBrowser(json)
 	d.AddBrowser(b)
 	if json != "" {
-		if err := b.Root().UpsertFrom(nodeutil.ReadJSON(json)); err != nil {
+		if err := b.Root().UpsertFrom(readJson(json)); err != nil {
 			panic(err)
 		}
 	}
 	return d, birds
 }
 
+// not useful in prod
+func readJson(s string) node.Node {
+	n, err := nodeutil.ReadJSON(s)
+	if err != nil {
+		panic(err)
+	}
+	return n
+}
+
 func BirdBrowser(json string) (*node.Browser, map[string]*Bird) {
 	data := make(map[string]*Bird)
 	b := node.NewBrowser(BirdModule(), BirdNode(data))
 	if json != "" {
-		if err := b.Root().UpsertFrom(nodeutil.ReadJSON(json)); err != nil {
+		if err := b.Root().UpsertFrom(readJson(json)); err != nil {
 			panic(err)
 		}
 	}

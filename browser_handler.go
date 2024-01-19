@@ -219,8 +219,10 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				}
 			} else {
 				// CRUD - Insert
-				payload = nodeutil.ReadJSONIO(r.Body)
-				err = target.InsertFrom(payload)
+				payload, err = nodeutil.ReadJSONIO(r.Body)
+				if err == nil {
+					err = target.InsertFrom(payload)
+				}
 			}
 		case "OPTIONS":
 			// NOP
@@ -279,7 +281,7 @@ func nodeRdr(mime MimeType, in io.Reader) (node.Node, error) {
 	if mime.IsXml() {
 		return nodeutil.ReadXMLBlock(in)
 	}
-	return nodeutil.ReadJSONIO(in), nil
+	return nodeutil.ReadJSONIO(in)
 }
 
 func readInput(compliance ComplianceOptions, contentType MimeType, r *http.Request, a *meta.Rpc) (node.Node, error) {
@@ -313,7 +315,7 @@ func requestNode(r *http.Request) (node.Node, error) {
 		return formNode(r)
 	}
 
-	return nodeutil.ReadJSONIO(r.Body), nil
+	return nodeutil.ReadJSONIO(r.Body)
 }
 
 func (m MimeType) IsXml() bool {

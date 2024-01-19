@@ -199,7 +199,7 @@ func jsonNode(in io.ReadCloser) (node.Node, error) {
 	if err != nil || len(data) == 0 {
 		return nil, err
 	}
-	return nodeutil.ReadJSONIO(bytes.NewBuffer(data)), nil
+	return nodeutil.ReadJSONIO(bytes.NewBuffer(data))
 
 }
 
@@ -258,9 +258,9 @@ func (cn *clientNode) requestAction(p *node.Path, in *node.Selection) (node.Node
 			if !found {
 				return nil, fmt.Errorf("'%s' missing in output wrapper", key)
 			}
-			return nodeutil.ReadJSONValues(respVals), nil
+			return nodeutil.ReadJSONValues(respVals)
 		}
-		return nodeutil.ReadJSONIO(resp), nil
+		return nodeutil.ReadJSONIO(resp)
 	}
 	return nil, nil
 }

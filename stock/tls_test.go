@@ -34,8 +34,16 @@ func TestTlsNode(t *testing.T) {
 	}`
 	cfg := &Tls{}
 	b := node.NewBrowser(m, TlsNode(cfg))
-	fc.AssertEqual(t, nil, b.Root().UpsertFrom(nodeutil.ReadJSON(scfg)))
+	fc.AssertEqual(t, nil, b.Root().UpsertFrom(readJson(scfg)))
 	actual, err := nodeutil.WriteJSON(b.Root())
 	fc.RequireEqual(t, nil, err)
 	fc.RequireEqual(t, `{"cert":{"certFile":"testdata/test.crt","keyFile":"testdata/test.key"}}`, actual)
+}
+
+func readJson(s string) node.Node {
+	n, err := nodeutil.ReadJSON(s)
+	if err != nil {
+		panic(err)
+	}
+	return n
 }

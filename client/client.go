@@ -213,18 +213,28 @@ func (c *client) clientStream(params string, p *node.Path, ctx context.Context) 
 									if err != nil {
 										err = fmt.Errorf("eventTime in wrong format '%s'", tstr)
 									} else {
-										e = streamEvent{
-											Timestamp: t,
-											Node:      nodeutil.ReadJSONValues(body),
+										n, err := nodeutil.ReadJSONValues(body)
+										if err != nil {
+											err = fmt.Errorf("could not parse event payload. %s", err)
+										} else {
+											e = streamEvent{
+												Timestamp: t,
+												Node:      n,
+											}
 										}
 									}
 								}
 							}
 						}
 					} else {
-						e = streamEvent{
-							Node:      nodeutil.ReadJSONIO(bytes.NewReader(event)),
-							Timestamp: time.Now(),
+						n, err := nodeutil.ReadJSONIO(bytes.NewReader(event))
+						if err != nil {
+							err = fmt.Errorf("could not parse event payload. %s", err)
+						} else {
+							e = streamEvent{
+								Node:      n,
+								Timestamp: time.Now(),
+							}
 						}
 					}
 				}

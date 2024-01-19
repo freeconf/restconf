@@ -49,7 +49,7 @@ func TestApi(t *testing.T) {
 		"stream" : "my-stream"
 	}`
 	rpc := sel(root.Find("establish-subscription"))
-	out, err := rpc.Action(nodeutil.ReadJSON(req))
+	out, err := rpc.Action(readJson(req))
 	fc.AssertEqual(t, nil, err)
 	actual, err := nodeutil.WriteJSON(out)
 	fc.AssertEqual(t, nil, err)
@@ -60,15 +60,23 @@ func TestApi(t *testing.T) {
 		"stream-filter-name" : "nope",
 		"stream" : "my-stream"
 	}`
-	_, err = rpc.Action(nodeutil.ReadJSON(badFilter))
+	_, err = rpc.Action(readJson(badFilter))
 	fc.AssertEqual(t, true, err != nil)
 
 	badStream := `{
 		"stream-filter-name" : "my-filter",
 		"stream" : "nope"
 	}`
-	_, err = rpc.Action(nodeutil.ReadJSON(badStream))
+	_, err = rpc.Action(readJson(badStream))
 	fc.AssertEqual(t, true, err != nil)
+}
+
+func readJson(s string) node.Node {
+	n, err := nodeutil.ReadJSON(s)
+	if err != nil {
+		panic(err)
+	}
+	return n
 }
 
 func sel(s *node.Selection, err error) *node.Selection {

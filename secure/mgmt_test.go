@@ -15,7 +15,7 @@ func TestManage(t *testing.T) {
 	a := NewRbac()
 	ypath := source.Dir("../yang")
 	b := node.NewBrowser(parser.RequireModule(ypath, "fc-secure"), Manage(a))
-	err := b.Root().UpsertFrom(nodeutil.ReadJSON(`{
+	err := b.Root().UpsertFrom(readJson(`{
 		"authorization" : {
 			"role" : [{
 				"id" : "sales",
@@ -37,4 +37,12 @@ func TestManage(t *testing.T) {
 	}
 	fc.AssertEqual(t, 1, len(a.Roles))
 	//fc.AssertEqual(t, 3, len(a.Roles["sales"].Access))
+}
+
+func readJson(s string) node.Node {
+	n, err := nodeutil.ReadJSON(s)
+	if err != nil {
+		panic(err)
+	}
+	return n
 }
