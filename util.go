@@ -3,6 +3,7 @@ package restconf
 import (
 	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -68,7 +69,7 @@ func FindDeviceIdInUrl(addr string) string {
 // otherwise go will emit error that you're trying to change header when
 // it's too late.  i think harmless, but still not what you intended and
 // actuall error is eatten.
-func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.ResponseWriter) bool {
+func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.ResponseWriter, mime MimeType) bool {
 	if err == nil {
 		return false
 	}
@@ -83,11 +84,25 @@ func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.
 			Message: msg,
 		}
 		var buff bytes.Buffer
-		fmt.Fprintf(&buff, `{"ietf-restconf:errors":{"error":[`)
-		json.NewEncoder(&buff).Encode(&errResp)
-		fmt.Fprintf(&buff, `]}}`)
+		errRespWrapper := errResponseWrapper{
+			Errors: []errResponseErr{
+				{
+					Error: errResp,
+				},
+			},
+		}
+		if mime.IsXml() {
+			if eerr := xml.NewEncoder(&buff).Encode(errRespWrapper); eerr != nil {
+				fc.Err.Printf("error encoding xml error response %s", eerr)
+			}
+		} else {
+			if eerr := json.NewEncoder(&buff).Encode(errRespWrapper); eerr != nil {
+				fc.Err.Printf("error encoding json error response %s", eerr)
+			}
+		}
 		msg = buff.String()
 	}
+	w.Header().Set("Content-Type", string(mime))
 	http.Error(w, msg, code)
 	return true
 }
@@ -118,11 +133,23 @@ func decodeErrorPath(fullPath string) string {
 	return fmt.Sprint(module, ":", path)
 }
 
+type errResponseWrapper struct {
+	Errors []errResponseErr `json:"ietf-restconf:errors" xml:"errors"`
+}
+
+type errResponseErr struct {
+	Error errResponse `json:"error" xml:"error"`
+}
+
+func (e errResponseWrapper) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.Errors)
+}
+
 type errResponse struct {
-	Type    string `json:"error-type"`
-	Tag     string `json:"error-tag"`
-	Path    string `json:"error-path"`
-	Message string `json:"error-message"`
+	Type    string `json:"error-type" xml:"error-type"`
+	Tag     string `json:"error-tag"  xml:"error-tag"`
+	Path    string `json:"error-path"  xml:"error-path"`
+	Message string `json:"error-message"  xml:"error-message"`
 }
 
 func ipAddrSplitHostPort(addr string) (host string, port string) {

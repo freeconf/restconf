@@ -62,14 +62,14 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 	sel := hndlr.browser.RootWithContext(ctx)
 	var target *node.Selection
 	defer sel.Release()
+	acceptType := MimeType(r.Header.Get("Accept"))
+	contentType := MimeType(r.Header.Get("Content-Type"))
 	if target, err = sel.Find(r.URL.EscapedPath()); err == nil {
 		if err = node.BuildConstraints(target, r.URL.Query()); err != nil {
-			if handleErr(compliance, err, r, w) {
+			if handleErr(compliance, err, r, w, acceptType) {
 				return
 			}
 		}
-		acceptType := MimeType(r.Header.Get("Accept"))
-		contentType := MimeType(r.Header.Get("Content-Type"))
 		wireFmt := getWireFormatter(acceptType)
 		hdr := w.Header()
 		if target == nil {
@@ -77,7 +77,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 			return
 		}
 		defer target.Release()
-		if handleErr(compliance, err, r, w) {
+		if handleErr(compliance, err, r, w, acceptType) {
 			return
 		}
 		isRpcOrAction := r.Method == "POST" && meta.IsAction(target.Meta())
@@ -176,18 +176,18 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 		case "PATCH":
 			// CRUD - Upsert
 			var input node.Node
-			input, err = requestNode(r)
+			input, err = requestNode(r, contentType)
 			if err != nil {
-				handleErr(compliance, err, r, w)
+				handleErr(compliance, err, r, w, acceptType)
 				return
 			}
 			err = target.UpsertFrom(input)
 		case "PUT":
 			// CRUD - Remove and replace
 			var input node.Node
-			input, err = requestNode(r)
+			input, err = requestNode(r, contentType)
 			if err != nil {
-				handleErr(compliance, err, r, w)
+				handleErr(compliance, err, r, w, acceptType)
 				return
 			}
 			err = target.ReplaceFrom(input)
@@ -198,19 +198,19 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				var input node.Node
 				if a.Input() != nil && r.ContentLength > 0 {
 					if input, err = readInput(compliance, contentType, r, a); err != nil {
-						handleErr(compliance, err, r, w)
+						handleErr(compliance, err, r, w, acceptType)
 						return
 					}
 				}
 				outputSel, err := target.Action(input)
 				if err != nil {
-					handleErr(compliance, err, r, w)
+					handleErr(compliance, err, r, w, acceptType)
 					return
 				}
 				if outputSel != nil && a.Output() != nil {
 					setContentType(compliance, w.Header(), acceptType)
 					if err = sendActionOutput(acceptType, compliance, wireFmt, w, outputSel, a); err != nil {
-						handleErr(compliance, err, r, w)
+						handleErr(compliance, err, r, w, acceptType)
 						return
 					}
 				} else {
@@ -232,7 +232,7 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 	}
 
 	if err != nil {
-		handleErr(compliance, err, r, w)
+		handleErr(compliance, err, r, w, acceptType)
 	}
 }
 
@@ -309,13 +309,12 @@ func readInput(compliance ComplianceOptions, contentType MimeType, r *http.Reque
 	return n, nil
 }
 
-func requestNode(r *http.Request) (node.Node, error) {
+func requestNode(r *http.Request, contentType MimeType) (node.Node, error) {
 	// not part of spec, custom feature to allow for form uploads
 	if isMultiPartForm(r.Header) {
 		return formNode(r)
 	}
-
-	return nodeutil.ReadJSONIO(r.Body)
+	return nodeRdr(contentType, r.Body)
 }
 
 func (m MimeType) IsXml() bool {
