@@ -18,5 +18,7 @@ github.com/freeconf/yang v0.0.0-20231206120455-129436190487 h1:nIcof7cZqFJhXm767
 github.com/freeconf/yang v0.0.0-20231206120455-129436190487/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=
 github.com/freeconf/yang v0.0.0-20240113214104-fe20e073cbc5 h1:rq6J03f/b5YCdS8ZwD6S/IZqjyzpxRksbSk2aOBzzPo=
 github.com/freeconf/yang v0.0.0-20240113214104-fe20e073cbc5/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=
+github.com/freeconf/yang v0.0.0-20240126135339-ef92ddeb9f99 h1:CzgpQ/Y6Lqpsx8oDLGSrSp4f4WggqBLkUq4IOrGrLPk=
+github.com/freeconf/yang v0.0.0-20240126135339-ef92ddeb9f99/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=
 github.com/freeconf/yang v0.1.0-alpha h1:rvKmBgcTjZM2Fyt5g7xe/yL+Og9fQaBe489o/QRpJR8=
 github.com/freeconf/yang v0.1.0-alpha/go.mod h1:mWEJ47bQKL2+1uMaHsA6VjRtoO+svJ2LcIiN+StJqNY=
