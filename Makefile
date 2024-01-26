@@ -28,4 +28,3 @@ $(DOCS_OUT) : docs/%.html :
 		-on configured \
 		-ypath yang/ietf-rfc \
 		-module $* > $@
-

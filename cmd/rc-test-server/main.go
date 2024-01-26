@@ -8,12 +8,8 @@ import (
 	"github.com/freeconf/yang/testdata/car"
 )
 
-// Start the car app with NETCONF Server support to test NETCONF clients
-// against.  This is unliekly a very useful tool long term so this will eventually
-// turn into an example I suspect.
-//
-// hostkey was generated with
-//   ssh-keygen -t rsa -f host.key
+// Start the car app with RESTCONF Server support to test RESTCONF clients
+// against.
 
 func main() {
 	fc.DebugLog(true)
