@@ -103,7 +103,9 @@ func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.
 		msg = buff.String()
 	}
 	w.Header().Set("Content-Type", string(mime))
-	http.Error(w, msg, code)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(code)
+	fmt.Fprintln(w, msg)
 	return true
 }
 
