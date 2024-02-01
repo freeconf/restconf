@@ -1,0 +1,2 @@
+{"ietf-restconf:errors":{"error":[{"error-type":"protocol","error-tag":"operation-failed","error-path":"","error-message":"some error"}]}}
+

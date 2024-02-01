@@ -1,0 +1,1 @@
+<errors xmlns="urn:ietf:params:xml:ns:yang:ietf-restconf"><error><error-type>protocol</error-type><error-tag>operation-failed</error-tag><error-path></error-path><error-message>some error</error-message></error></errors>

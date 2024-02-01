@@ -1,8 +1,11 @@
 package restconf
 
 import (
+	"bytes"
+	"errors"
 	"testing"
 
+	"net/http"
 	"net/url"
 
 	"github.com/freeconf/yang/fc"
@@ -228,4 +231,33 @@ func Test_shiftOptionalParamWithinSegment(t *testing.T) {
 		fc.AssertEqual(t, test.param, param)
 		fc.AssertEqual(t, test.path, path.Path)
 	}
+}
+
+func TestHandleErr(t *testing.T) {
+	werr := errors.New("some error")
+	r := http.Request{}
+	w := dummyResponseWriter{}
+	handleErr(Strict, werr, &r, &w, YangDataXmlMimeType1)
+	fc.Gold(t, *updateFlag, w.buf.Bytes(), "testdata/gold/error.xml")
+
+	w.buf.Reset()
+	handleErr(Strict, werr, &r, &w, YangDataJsonMimeType1)
+	fc.Gold(t, *updateFlag, w.buf.Bytes(), "testdata/gold/error.json")
+}
+
+type dummyResponseWriter struct {
+	buf bytes.Buffer
+}
+
+// Write implements http.ResponseWriter.
+func (e *dummyResponseWriter) Write(data []byte) (int, error) {
+	return e.buf.Write(data)
+}
+
+// WriteHeader implements http.ResponseWriter.
+func (dummyResponseWriter) WriteHeader(statusCode int) {
+}
+
+func (d dummyResponseWriter) Header() http.Header {
+	return http.Header{}
 }

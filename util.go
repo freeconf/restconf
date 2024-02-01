@@ -3,12 +3,13 @@ package restconf
 import (
 	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/url"
 
 	"strings"
+
+	"github.com/freeconf/yang/patch/xml"
 
 	"github.com/freeconf/yang/fc"
 )
@@ -84,19 +85,23 @@ func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.
 			Message: msg,
 		}
 		var buff bytes.Buffer
-		errRespWrapper := errResponseWrapper{
-			Errors: []errResponseErr{
-				{
-					Error: errResp,
-				},
-			},
-		}
 		if mime.IsXml() {
-			if eerr := xml.NewEncoder(&buff).Encode(errRespWrapper); eerr != nil {
+			emsg := struct {
+				XMLName xml.Name      `xml:"urn:ietf:params:xml:ns:yang:ietf-restconf errors"`
+				Errors  []errResponse `xml:"error"`
+			}{
+				Errors: []errResponse{errResp},
+			}
+			if eerr := xml.NewEncoder(&buff).Encode(emsg); eerr != nil {
 				fc.Err.Printf("error encoding xml error response %s", eerr)
 			}
 		} else {
-			if eerr := json.NewEncoder(&buff).Encode(errRespWrapper); eerr != nil {
+			emsg := map[string]interface{}{
+				"ietf-restconf:errors": map[string]interface{}{
+					"error": []errResponse{errResp},
+				},
+			}
+			if eerr := json.NewEncoder(&buff).Encode(emsg); eerr != nil {
 				fc.Err.Printf("error encoding json error response %s", eerr)
 			}
 		}
@@ -133,18 +138,6 @@ func decodeErrorPath(fullPath string) string {
 		return fullPath
 	}
 	return fmt.Sprint(module, ":", path)
-}
-
-type errResponseWrapper struct {
-	Errors []errResponseErr `json:"ietf-restconf:errors" xml:"errors"`
-}
-
-type errResponseErr struct {
-	Error errResponse `json:"error" xml:"error"`
-}
-
-func (e errResponseWrapper) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.Errors)
 }
 
 type errResponse struct {
