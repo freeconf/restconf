@@ -181,7 +181,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				handleErr(compliance, err, r, w, acceptType)
 				return
 			}
-			err = target.UpsertFrom(input)
+			editable, _ := target.Constrain("content=config")
+			err = editable.UpsertFrom(input)
 		case "PUT":
 			// CRUD - Remove and replace
 			var input node.Node
@@ -190,7 +191,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				handleErr(compliance, err, r, w, acceptType)
 				return
 			}
-			err = target.ReplaceFrom(input)
+			editable, _ := target.Constrain("content=config")
+			err = editable.ReplaceFrom(input)
 		case "POST":
 			if meta.IsAction(target.Meta()) {
 				// RPC
@@ -221,7 +223,8 @@ func (hndlr *browserHandler) ServeHTTP(compliance ComplianceOptions, ctx context
 				// CRUD - Insert
 				payload, err = nodeutil.ReadJSONIO(r.Body)
 				if err == nil {
-					err = target.InsertFrom(payload)
+					editable, _ := target.Constrain("content=config")
+					err = editable.InsertFrom(payload)
 				}
 			}
 		case "OPTIONS":
