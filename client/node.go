@@ -51,6 +51,11 @@ func (cn *clientNode) node() node.Node {
 		}
 		return cn.startEditMode(r.Selection.Path)
 	}
+	n.OnRelease = func(*node.Selection) {
+		cn.read = nil
+		cn.edit = nil
+		cn.changes = nil
+	}
 	n.OnChild = func(r node.ChildRequest) (node.Node, error) {
 		if r.IsNavigation() {
 			if valid, err := cn.validNavigation(r.Target); !valid || err != nil {
