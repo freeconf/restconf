@@ -104,8 +104,8 @@ func yangLibModuleHandleNode(addresser ModuleAddresser, m *meta.Module) node.Nod
 
 func localYangLibYangLibrary(addresser ModuleAddresser, d Device) node.Node {
 	mods := d.Modules()
-	modset := ModuleSet{ident: "all", module: mods}
-	modsets := make(map[string]*ModuleSet)
+	modset := moduleSet{ident: "all", module: mods}
+	modsets := make(map[string]*moduleSet)
 	modsets["all"] = &modset
 	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
@@ -121,7 +121,7 @@ func localYangLibYangLibrary(addresser ModuleAddresser, d Device) node.Node {
 	}
 }
 
-func YangLibModuleSetList(addresser ModuleAddresser, modsets map[string]*ModuleSet) node.Node {
+func YangLibModuleSetList(addresser ModuleAddresser, modsets map[string]*moduleSet) node.Node {
 	index := node.NewIndex(modsets)
 	index.Sort(func(a, b reflect.Value) bool {
 		return strings.Compare(a.String(), b.String()) < 0
@@ -129,7 +129,7 @@ func YangLibModuleSetList(addresser ModuleAddresser, modsets map[string]*ModuleS
 	return &nodeutil.Basic{
 		OnNext: func(r node.ListRequest) (node.Node, []val.Value, error) {
 			key := r.Key
-			var ms *ModuleSet
+			var ms *moduleSet
 			if r.Key != nil {
 				ms = modsets[r.Key[0].String()]
 			} else {
@@ -148,7 +148,7 @@ func YangLibModuleSetList(addresser ModuleAddresser, modsets map[string]*ModuleS
 	}
 }
 
-func yangLibModuleSetHandleNode(addresser ModuleAddresser, ms *ModuleSet) node.Node {
+func yangLibModuleSetHandleNode(addresser ModuleAddresser, ms *moduleSet) node.Node {
 	return &nodeutil.Basic{
 		OnChild: func(r node.ChildRequest) (node.Node, error) {
 			switch r.Meta.Ident() {
@@ -227,19 +227,19 @@ func yangLibModuleSetModuleHandleNode(addresser ModuleAddresser, m *meta.Module)
 	}
 }
 
-type ModuleSet struct {
+type moduleSet struct {
 	ident            string
 	module           map[string]*meta.Module
 	importOnlyModule map[string]*meta.Module
 }
 
-func (ms *ModuleSet) Ident() string {
+func (ms *moduleSet) Ident() string {
 	return ms.ident
 }
 
-func (ms *ModuleSet) Module() map[string]*meta.Module {
+func (ms *moduleSet) Module() map[string]*meta.Module {
 	return ms.module
 }
-func (ms *ModuleSet) ImportOnlyModule() map[string]*meta.Module {
+func (ms *moduleSet) ImportOnlyModule() map[string]*meta.Module {
 	return ms.importOnlyModule
 }
