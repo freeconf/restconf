@@ -380,7 +380,8 @@ func (srv *Server) serveStaticRoute(w http.ResponseWriter, r *http.Request) bool
 	switch op {
 	case "host-meta":
 		// RESTCONF Sec. 3.1
-		fmt.Fprintf(w, `{ "xrd" : { "link" : { "@rel" : "restconf", "@href" : "/restconf" } } }`)
+		u, _ := url.Parse("/")
+		fmt.Fprintf(w, `{ "subject": "%s", "links" : [ { "rel" : "restconf", "href" : "/restconf" } ] }`, r.URL.ResolveReference(u))
 		return true
 	}
 	return false
