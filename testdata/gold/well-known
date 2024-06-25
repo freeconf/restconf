@@ -1,1 +1,1 @@
-{ "xrd" : { "link" : { "@rel" : "restconf", "@href" : "/restconf" } } }
+{ "subject": "/", "links" : [ { "rel" : "restconf", "href" : "/restconf" } ] }
