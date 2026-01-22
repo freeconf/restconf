@@ -175,8 +175,9 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(srv.Ver))
 		return
 	case ".well-known":
-		srv.serveStaticRoute(w, r)
-		return
+		if srv.serveStaticRoute(w, r) {
+			return
+		}
 	case "restconf":
 		op2, p := shift(p, '/')
 		r.URL = p

@@ -3,6 +3,7 @@ package restconf
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -76,7 +77,12 @@ func handleErr(compliance ComplianceOptions, err error, r *http.Request, w http.
 	}
 	fc.Debug.Printf("web request error [%s] %s %s", r.Method, r.URL, err.Error())
 	msg := err.Error()
-	code := fc.HttpStatusCode(err)
+	var code int
+	if errors.Is(err, ErrBadAddress) {
+		code = 400
+	} else {
+		code = fc.HttpStatusCode(err)
+	}
 	if !compliance.SimpleErrorResponse {
 		errResp := errResponse{
 			Type:    "protocol",
